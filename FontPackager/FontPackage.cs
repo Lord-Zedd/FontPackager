@@ -94,10 +94,10 @@ namespace FontPackager
 
 			for (int i = 0; i < blockCount; i++)
 			{
-				var startchar = br.ReadChar();
+				var startchar = br.ReadUInt16();
 				var startfont = br.ReadInt16();
 
-				var endchar = br.ReadChar();
+				var endchar = br.ReadUInt16();
 				var endfont = br.ReadInt16();
 
 				charDatum start = new charDatum() { characterCode = startchar, fontIndex = startfont };
@@ -167,8 +167,8 @@ namespace FontPackager
 			BinaryWriter ctw = new BinaryWriter(chartable);
 			BinaryWriter dw = new BinaryWriter(datatable);
 
-			char tempChar;
-			char lastChar = (char)0;
+			UInt16 tempChar;
+			UInt16 lastChar = 0;
 
 			int blockindex = 0;
 			int blockoffset = 0;
@@ -403,7 +403,7 @@ namespace FontPackager
 		/// <param name="fontindex"></param>
 		/// <param name="image"></param>
 		/// <returns></returns>
-		public void AddCustomCharacter(char charcode, int fontindex, Image image, bool tint, int dwidth = -1)
+		public void AddCustomCharacter(UInt16 charcode, int fontindex, Image image, bool tint, int dwidth = -1)
 		{
 			Bitmap bm = (Bitmap)image;
 			BitmapData bd = bm.LockBits(
@@ -802,7 +802,7 @@ namespace FontPackager
 
 	public class charDatum
 	{
-		public char characterCode { get; set; }
+		public UInt16 characterCode { get; set; }
 		public Int16 fontIndex { get; set; }
 	}
 
@@ -833,10 +833,10 @@ namespace FontPackager
 
 	public class IsolatedFontEntry
 	{
-		public char CharCode { get; set; }
+		public UInt16 CharCode { get; set; }
 		public CharacterData Data { get; set; }
 
-		public IsolatedFontEntry(char code, CharacterData _char)
+		public IsolatedFontEntry(UInt16 code, CharacterData _char)
 		{
 			CharCode = code;
 
@@ -873,7 +873,7 @@ namespace FontPackager
 			//read in table
 			for (int i = 0; i < charCount; i++)
 			{
-				var _charindex = br.ReadChar();
+				var _charindex = br.ReadUInt16();
 				var _fontindex = br.ReadInt16();
 				int _offset = br.ReadInt32();
 

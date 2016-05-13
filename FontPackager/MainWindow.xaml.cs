@@ -155,19 +155,19 @@ namespace FontPackager
 				return null;
 		}
 
-		private char ParseChar(string command, string input)
+		private UInt16 ParseChar(string command, string input)
 		{
 			if (input.Length == 0)
 			{
 				WriteLog(command + "failed: Invalid unicode entered (Box is empty)");
-				return (char)0xFFFF;
+				return 0xFFFF;
 			}
 
-			char char2add;
+			UInt16 char2add;
 
 			try
 			{
-				char2add = char.Parse(input);
+				char2add = UInt16.Parse(input, System.Globalization.NumberStyles.HexNumber);
 
 				if (char2add == 0xFFFF)
 					WriteLog(command + "failed: Character 0xFFFF is invalid, use 0xFFFE.");
@@ -177,7 +177,7 @@ namespace FontPackager
 			catch
 			{
 				WriteLog(command + "failed: Invalid unicode entered (Could not parse hex)");
-				return (char)0xFFFF;
+				return 0xFFFF;
 			}
 		}
 
@@ -251,7 +251,7 @@ namespace FontPackager
 			{
 				System.Drawing.Image newpic = System.Drawing.Image.FromFile(path);
 
-				char char2replace = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].CharCode;
+				UInt16 char2replace = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].CharCode;
 
 				package.AddCustomCharacter(char2replace, fontslist.SelectedIndex, newpic, tintCheck.IsChecked.Value);
 
@@ -314,7 +314,7 @@ namespace FontPackager
 
 		private void btnAdd_Click(object sender, RoutedEventArgs e)
 		{
-			char char2add = ParseChar("Add ", newChar.Text);
+			UInt16 char2add = ParseChar("Add ", newChar.Text);
 			if (char2add == 0xFFFF)
 				return;
 
@@ -594,7 +594,7 @@ namespace FontPackager
 		#region batch tab controls
 		private void btnAddBat_Click(object sender, RoutedEventArgs e)
 		{
-			char char2add = ParseChar("Batch add ", newCharBat.Text);
+			UInt16 char2add = ParseChar("Batch add ", newCharBat.Text);
 			if (char2add == 0xFFFF)
 				return;
 
