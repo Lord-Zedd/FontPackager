@@ -39,7 +39,7 @@
 							<ColumnDefinition Width="*" />
 							<ColumnDefinition Width="70" />
 						</Grid.ColumnDefinitions>
-						<TextBlock Text="Font:" VerticalAlignment="Center" Height="22" Grid.Column="0"/>
+						<TextBlock Text="Font:" VerticalAlignment="Center" Grid.Column="0" />
 						<ComboBox x:Name="fontslist" SelectionChanged="fontslist_SelectionChanged" Height="22" Grid.Column="1"/>
 						<CheckBox x:Name="cbInvertBG" Content="Invert BG" Grid.Column="2" VerticalAlignment="Center" Checked="cbInvertBG_Checked" Unchecked="cbInvertBG_Unchecked" Margin="4,0,0,0"/>
 					</Grid>
@@ -70,7 +70,7 @@
 									<Button x:Name="btnReplace" Content="Replace Selected..." Click="btnReplace_Click" IsEnabled="False" />
 									<Button x:Name="btnExtract" Content="Extract Selected..." Click="btnExtract_Click" IsEnabled="False" Margin="4,0,0,0"/>
 									<Button x:Name="btnDelete" Content="Delete Selected..." Click="btnDelete_Click" IsEnabled="False" Margin="4,0,0,0"/>
-									<CheckBox x:Name="tintCheck" Content="Tint New For HUD Visiblity" VerticalAlignment="Center" Margin="4,0,4,0" ToolTip="Slightly tints blacks/whites so they show better on the HUD."/>
+									<CheckBox x:Name="tintCheck" Content="Preserve Colors Of New Image" VerticalAlignment="Center" Margin="4,0,4,0" ToolTip="Slightly tints blacks/whites so it won't be affected by UI/HUD colors."/>
 								</StackPanel>
 								<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
 									<GroupBox Header="New Character" Padding="4">
