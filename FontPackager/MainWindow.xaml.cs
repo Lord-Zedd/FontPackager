@@ -119,7 +119,7 @@ namespace FontPackager
 				}
 
 
-				fontChar.ToolTip = "Unicode: " + unicode +
+				fontChar.ToolTip = "Unicode: " + unicode.ToString("X4") +
 					"\r\nUTF8: " + utf8Code +
 					"\r\nDouble click to copy as a unicode character to the clipboard." +
 					"\r\n\r\nWidth: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.width +
