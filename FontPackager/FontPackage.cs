@@ -58,8 +58,16 @@ namespace FontPackager
 				return 2;
 			}
 
+			maxFontCount = 16;
+
 			//check to see if package belongs to Halo 4
-			maxFontCount = (fontCount < 16) ? 16 : 64;
+			var maxcounthack = br.ReadInt32();
+			if (maxcounthack == 1048)
+				maxFontCount = 64;
+
+			br.BaseStream.Position -= 4;
+
+			//maxFontCount = (fontCount < 16) ? 16 : 64;
 
 			for (int i = 0; i < maxFontCount; i++)
 			{
