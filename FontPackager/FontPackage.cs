@@ -12,18 +12,17 @@ namespace FontPackager
 {
 	class FontPackage
 	{
-		public MemoryStream ms;
-		public int maxFontCount;
-		public List<BlockRange> BlockRanges = new List<BlockRange>();
-		public List<FontHeader> FontHeaders = new List<FontHeader>();
-		public List<FontInfo> FontEntries = new List<FontInfo>();
+		private MemoryStream ms;
+		private int maxFontCount;
+		private List<BlockRange> BlockRanges = new List<BlockRange>();
+		private List<FontHeaderInfo> FontEntries = new List<FontHeaderInfo>();
 		public List<int> OrderList = new List<int>();
-		public List<Block> Blocks = new List<Block>();
+		private List<Block> Blocks = new List<Block>();
 
-		public List<IsolatedFont> Fonts = new List<IsolatedFont>();
+		public List<PackageFont> Fonts = new List<PackageFont>();
 
-		public int BlockRangesOffset;
-		public int ChunkSize;
+		private int BlockRangesOffset;
+		private int ChunkSize;
 
 		/// <summary>
 		/// Loads a font package from the given file.
@@ -45,7 +44,6 @@ namespace FontPackager
 			{
 				ms.Close();
 				br.Close();
-				//MessageBox.Show("Not a valid font package (invalid header magic/version)");
 				return 1;
 			}
 
@@ -54,7 +52,6 @@ namespace FontPackager
 			{
 				ms.Close();
 				br.Close();
-				//MessageBox.Show("Not a valid font package (font count is 0 or invalid)");
 				return 2;
 			}
 
@@ -65,13 +62,11 @@ namespace FontPackager
 			if (maxcounthack == 1048)
 				maxFontCount = 64;
 
+			//get the font headers info
 			br.BaseStream.Position -= 4;
-
-			//maxFontCount = (fontCount < 16) ? 16 : 64;
-
 			for (int i = 0; i < maxFontCount; i++)
 			{
-				FontEntries.Add(new FontInfo()
+				FontEntries.Add(new FontHeaderInfo()
 				{
 					offset = br.ReadInt32(),
 					size = br.ReadInt32(),
@@ -88,15 +83,6 @@ namespace FontPackager
 			int headerTableSize = br.ReadInt32();
 			BlockRangesOffset = br.ReadInt32();
 			int blockCount = br.ReadInt32();
-
-			//read in the font headers
-			for (int i = 0; i < fontCount; i++)
-			{
-				br.BaseStream.Position = FontEntries[i].offset;
-				FontHeader header = new FontHeader();
-				header.Read(br);
-				FontHeaders.Add(header);
-			}
 
 			br.BaseStream.Position = BlockRangesOffset;
 
@@ -134,9 +120,12 @@ namespace FontPackager
 				Blocks.Add(dataBlock);
 			}
 
+			//read font headers and find its characters
 			for (int i = 0; i < fontCount; i++)
 			{
-				var isofont = new IsolatedFont(FontHeaders[i].Name());
+				var tempfont = new PackageFont();
+				br.BaseStream.Position = FontEntries[i].offset;
+				tempfont.ReadHeader(br);
 
 				for (int bl = FontEntries[i].startBlock; bl < (FontEntries[i].startBlock + FontEntries[i].blockCount); bl++)
 				{
@@ -144,13 +133,13 @@ namespace FontPackager
 					{
 						if (Blocks[bl].charTable[ch].index.fontIndex == i)
 						{
-							var isoentry = new IsolatedFontEntry(Blocks[bl].charTable[ch].index.characterCode, Blocks[bl].charData[ch]);
+							var tempchar = new FontCharacter(Blocks[bl].charTable[ch].index.characterCode, Blocks[bl].charData[ch]);
 
-							isofont.Characters.Add(isoentry);
+							tempfont.Characters.Add(tempchar);
 						}
 					}
 				}
-				Fonts.Add(isofont);
+				Fonts.Add(tempfont);
 			}
 
 			br.Close();
@@ -162,7 +151,7 @@ namespace FontPackager
 		{
 			UInt16 blockheader = 8;
 
-			List<FontInfo> FontInfo = new List<FontInfo>();
+			List<FontHeaderInfo> FontInfo = new List<FontHeaderInfo>();
 			List<BlockRange> BlockInfo = new List<BlockRange>();
 
 			List<charDatum> blockchars = new List<charDatum>();
@@ -188,7 +177,7 @@ namespace FontPackager
 
 			for (int i = 0; i < Fonts.Count; i++)
 			{
-				FontInfo fontt = new FontInfo();
+				FontHeaderInfo fontt = new FontHeaderInfo();
 
 				for (int j = 0; j < Fonts[i].Characters.Count; j++)
 				{
@@ -375,10 +364,10 @@ namespace FontPackager
 			{
 				bw.BaseStream.Position = FontEntries[i].offset + 0x24;
 
-				bw.Write(FontHeaders[i].lineHeight);
-				bw.Write(FontHeaders[i].lineTopPad);
-				bw.Write(FontHeaders[i].lineBotPad);
-				bw.Write(FontHeaders[i].lineIndent);
+				bw.Write(Fonts[i].LineHeight);
+				bw.Write(Fonts[i].LineTopPad);
+				bw.Write(Fonts[i].LineBottomPad);
+				bw.Write(Fonts[i].LineIndent);
 
 				var datasize = 0;
 				for (int j = 0; j < Fonts[i].Characters.Count; j++)
@@ -708,7 +697,7 @@ namespace FontPackager
 			else
 			{
 				ci.fType = 0;
-				ci.dispHeight = (ushort)FontHeaders[fontindex].lineHeight;
+				ci.dispHeight = (ushort)Fonts[fontindex].LineHeight;
 			}
 
 			ci.width = (UInt16)image.Width;
@@ -722,7 +711,7 @@ namespace FontPackager
 			ci.compressedData = data.ToArray();
 			ci.dataSize = (UInt16)ci.compressedData.Length;
 
-			IsolatedFontEntry ife = new IsolatedFontEntry(charcode, ci);
+			FontCharacter ife = new FontCharacter(charcode, ci);
 
 			if (existingindex != -1)
 				Fonts[fontindex].Characters[existingindex] = ife;
@@ -734,72 +723,13 @@ namespace FontPackager
 		}
 	}
 
-	public class FontInfo
+	public class FontHeaderInfo
 	{
 		public int offset { get; set; }
 		public int size { get; set; }
 
 		public Int16 startBlock { get; set; }
 		public Int16 blockCount { get; set; }
-	}
-
-	public class FontHeader
-	{
-		public int version { get; set; }
-
-		public byte[] _name = new byte[32];
-
-		public string Name()
-		{
-			return (System.Text.Encoding.ASCII.GetString(_name).TrimEnd((Char)0));
-		}
-
-		public Int16 lineHeight { get; set; }
-		public Int16 lineTopPad { get; set; }
-		public Int16 lineBotPad { get; set; }
-		public Int16 lineIndent { get; set; }
-
-		public int kerningPairOffset { get; set; }
-
-		public int kerningPairCount { get; set; }
-
-		public byte[] unkData = new byte[256];
-
-		public int headersize { get; set; }
-		public int unk2 { get; set; }
-		public int charCount { get; set; }
-		public int unk4 { get; set; }
-		public int unk5 { get; set; }
-		public int unk6 { get; set; }
-		public int unk7 { get; set; }
-		public int unk8 { get; set; }
-		public int compressedSize { get; set; }
-		public int decompressedSize { get; set; }
-
-		public void Read(BinaryReader br)
-		{
-			version = br.ReadInt32();
-			_name = br.ReadBytes(32);
-			lineHeight = br.ReadInt16();
-			lineTopPad = br.ReadInt16();
-			lineBotPad = br.ReadInt16();
-			lineIndent = br.ReadInt16();
-			kerningPairOffset = br.ReadInt32();
-			kerningPairCount = 0; //unsupported atm
-			br.BaseStream.Position += 4;
-			unkData = br.ReadBytes(256);
-
-			headersize = br.ReadInt32(); //x134
-			unk2 = br.ReadInt32();
-			charCount = br.ReadInt32();
-			unk4 = br.ReadInt32();
-			unk5 = br.ReadInt32();
-			unk6 = br.ReadInt32();
-			unk7 = br.ReadInt32();
-			unk8 = br.ReadInt32();
-			compressedSize = br.ReadInt32();
-			decompressedSize = br.ReadInt32();
-		}
 	}
 
 	public class BlockRange
@@ -814,11 +744,66 @@ namespace FontPackager
 		public Int16 fontIndex { get; set; }
 	}
 
-	public class IsolatedFont
+	public class PackageFont
 	{
+		public int HeaderVersion { get; set; }
+
 		public string Name { get; set; }
 
-		public List<IsolatedFontEntry> Characters = new List<IsolatedFontEntry>();
+		public Int16 LineHeight { get; set; }
+		public Int16 LineTopPad { get; set; }
+		public Int16 LineBottomPad { get; set; }
+		public Int16 LineIndent { get; set; }
+
+		private int KerningPairIndexOffset { get; set; }
+		private int KerningPairIndexCount { get; set; }
+
+		public byte[] KerningPairIndexTable { get; set; }
+
+		private int KerningPairOffset { get; set; }
+		public int unk2 { get; set; }
+		public int CharacterCount { get; set; }
+		public int unk4 { get; set; }
+		public int unk5 { get; set; }
+		public int unk6 { get; set; }
+		public int unk7 { get; set; }
+		public int unk8 { get; set; }
+		public int CompressedSize { get; set; }
+		public int DecompressedSize { get; set; }
+
+		public byte[] KerningPairTable { get; set; }
+
+		public void ReadHeader(BinaryReader br)
+		{
+			HeaderVersion = br.ReadInt32();
+			byte[] _name = br.ReadBytes(32);
+			Name = (System.Text.Encoding.ASCII.GetString(_name).TrimEnd((Char)0));
+
+			LineHeight = br.ReadInt16();
+			LineTopPad = br.ReadInt16();
+			LineBottomPad = br.ReadInt16();
+			LineIndent = br.ReadInt16();
+			KerningPairIndexOffset = br.ReadInt32();
+			KerningPairIndexCount = br.ReadInt32(); //unsupported atm
+
+			KerningPairIndexTable = br.ReadBytes(KerningPairIndexCount);
+
+			KerningPairOffset = br.ReadInt32(); //x134
+			unk2 = br.ReadInt32();
+			CharacterCount = br.ReadInt32();
+			unk4 = br.ReadInt32();
+			unk5 = br.ReadInt32();
+			unk6 = br.ReadInt32();
+			unk7 = br.ReadInt32();
+			unk8 = br.ReadInt32();
+			CompressedSize = br.ReadInt32();
+			DecompressedSize = br.ReadInt32();
+
+			if (KerningPairIndexCount > 0)
+				KerningPairTable = br.ReadBytes(256);
+		}
+
+		public List<FontCharacter> Characters = new List<FontCharacter>();
 
 		/// <summary>
 		/// Sorts the characters of a font. Called automatically by FontPackage.AddCharacter()
@@ -833,18 +818,14 @@ namespace FontPackager
 			return Characters.FindIndex(c => c.CharCode.Equals(charcode));
 		}
 
-		public IsolatedFont(string name)
-		{
-			Name = name;
-		}
 	}
 
-	public class IsolatedFontEntry
+	public class FontCharacter
 	{
 		public UInt16 CharCode { get; set; }
 		public CharacterData Data { get; set; }
 
-		public IsolatedFontEntry(UInt16 code, CharacterData _char)
+		public FontCharacter(UInt16 code, CharacterData _char)
 		{
 			CharCode = code;
 

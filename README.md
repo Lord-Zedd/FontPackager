@@ -1,7 +1,7 @@
 # Font Packager
 Halo "font_package.bin" Editor
 
-Font Packager is a tool to open and manipulate the font_package.bin files used in the 360 Halos as well as Halo Online and Halo 5 (only used for legacy purposes).
+Font Packager is a tool to open and manipulate the font_package.bin files used in the 360 Halos as well as Halo Online and Halo 5 (which only use packages for a couple legacy functions).
 
 
 # Credits

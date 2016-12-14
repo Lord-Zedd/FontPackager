@@ -27,7 +27,7 @@ namespace FontPackager
 		{
 			InitializeComponent();
 
-			logbox.Text = "Font Packager v1 by Lord Zedd. Open a font package!\r\nDon't mod online you fucking shitheads.";
+			logbox.Text = "Font Packager by Lord Zedd. Open a font package!\r\nDon't mod online you fucking shitheads.";
 		}
 		FontPackage package;
 
@@ -118,7 +118,6 @@ namespace FontPackager
 						utf8Code += " " + utf8[u].ToString("X2");
 				}
 
-
 				fontChar.ToolTip = "Unicode: " + unicode.ToString("X4") +
 					"\r\nUTF8: " + utf8Code +
 					"\r\nDouble click to copy as a unicode character to the clipboard." +
@@ -137,10 +136,10 @@ namespace FontPackager
 				lstChars.Items.Add(fontChar);
 			}
 
-			fontHeight.Text = package.FontHeaders[fontslist.SelectedIndex].lineHeight.ToString();
-			fontTPad.Text = package.FontHeaders[fontslist.SelectedIndex].lineTopPad.ToString();
-			fontBPad.Text = package.FontHeaders[fontslist.SelectedIndex].lineBotPad.ToString();
-			fontUnk.Text = package.FontHeaders[fontslist.SelectedIndex].lineIndent.ToString();
+			fontHeight.Text = package.Fonts[fontslist.SelectedIndex].LineHeight.ToString();
+			fontTPad.Text = package.Fonts[fontslist.SelectedIndex].LineTopPad.ToString();
+			fontBPad.Text = package.Fonts[fontslist.SelectedIndex].LineBottomPad.ToString();
+			fontUnk.Text = package.Fonts[fontslist.SelectedIndex].LineIndent.ToString();
 		}
 
 		private string OpenImage()
@@ -192,10 +191,10 @@ namespace FontPackager
 			if (fontslist.SelectedIndex == -1)
 				return;
 
-			package.FontHeaders[fontslist.SelectedIndex].lineHeight = height;
-			package.FontHeaders[fontslist.SelectedIndex].lineTopPad = tpad;
-			package.FontHeaders[fontslist.SelectedIndex].lineBotPad = bpad;
-			package.FontHeaders[fontslist.SelectedIndex].lineIndent = unk;
+			package.Fonts[fontslist.SelectedIndex].LineHeight = height;
+			package.Fonts[fontslist.SelectedIndex].LineTopPad = tpad;
+			package.Fonts[fontslist.SelectedIndex].LineBottomPad = bpad;
+			package.Fonts[fontslist.SelectedIndex].LineIndent = unk;
 		}
 
 		private short ParseHeaderShort(string valuename, string input)
@@ -556,11 +555,11 @@ namespace FontPackager
 				package.Fonts[fontslist.SelectedIndex].SortCharacters();
 
 				if ((bool)HOinfo.IsChecked)
-					UpdateFontInfo(package2.FontHeaders[fontindex].lineHeight, package2.FontHeaders[fontindex].lineTopPad, package2.FontHeaders[fontindex].lineBotPad, package2.FontHeaders[fontindex].lineIndent);
+					UpdateFontInfo(package2.Fonts[fontindex].LineHeight, package2.Fonts[fontindex].LineTopPad, package2.Fonts[fontindex].LineBottomPad, package2.Fonts[fontindex].LineIndent);
 
 				UpdateFontDisplay();
 
-				WriteLog("Characters successfully copied from font \"" + package2.FontHeaders[fontindex].Name() + "\" in package \"" + ofd.SafeFileName + "\".");
+				WriteLog("Characters successfully copied from font \"" + package2.Fonts[fontindex].Name + "\" in package \"" + ofd.SafeFileName + "\".");
 				package2 = new FontPackage();
 			}
 
