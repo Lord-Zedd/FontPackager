@@ -147,7 +147,111 @@ namespace FontPackager
 			return 0;
 		}
 
-		public void Rebuild(string inputpkg)
+		public int LoadH2(string filename)
+		{
+			int result = 1;
+			if (filename.EndsWith(".txt"))
+			{
+				string[] listfonts = File.ReadAllLines(filename);
+				listfonts = listfonts.Distinct().ToArray();
+				string basepath = filename.Substring(0, filename.LastIndexOf("\\") + 1);
+
+				foreach (string name in listfonts)
+				{
+					if (File.Exists(basepath + name))
+					{
+						result = LoadFile(basepath + name);
+					}
+				}
+
+				if (Fonts.Count == 0)
+					return 2;
+			}
+			else
+				result = LoadFile(filename);
+
+			return result;
+		}
+
+		private int LoadFile(string filename)
+		{
+			List<int> CharacterPointers = new List<int>();
+			List<CharacterData> CharacterEntries = new List<CharacterData>();
+
+			List<int> kernlist = new List<int>();
+
+			FileStream fs = new FileStream(filename, FileMode.Open);
+			BinaryReader br = new BinaryReader(fs);
+			ms = new MemoryStream(br.ReadBytes((int)br.BaseStream.Length));
+			fs.Close();
+			br = new BinaryReader(ms);
+
+			br.BaseStream.Position = 0x200;
+
+			//Make sure this is a font file
+			var fileMagic = br.ReadUInt32();
+			if (fileMagic != 0xF0000001)
+			{
+				ms.Close();
+				br.Close();
+				return 1;
+			}
+
+			PackageFont tempfont = new PackageFont();
+
+			tempfont.Name = filename.Substring(filename.LastIndexOf("\\") + 1);
+
+			tempfont.HeaderVersion = (int)fileMagic;
+			tempfont.ReadH2Header(br);
+
+			br.BaseStream.Position = 0x3AC;
+
+			int unk7 = br.ReadInt32();
+			int unk8 = br.ReadInt32();
+
+			int characterdataoffset = 0x40400 + (tempfont.CharacterCount * 0x10);
+
+			//read characters
+			for (int i = 0; i < tempfont.CharacterCount; i++)
+			{
+				CharacterData tempchar = new CharacterData();
+				tempchar.Read(br, 0x40400 + (i * 0x10), true);
+
+				br.BaseStream.Position = tempchar.OffsetH2;
+
+				tempchar.compressedData = br.ReadBytes(tempchar.dataSize);
+
+				CharacterEntries.Add(tempchar);
+			}
+
+			//read character indexes and match things up
+			for (int i = 0; i < 65536; i++)
+			{
+				br.BaseStream.Position = 0x400 + (i * 4);
+
+				int charindex = br.ReadInt32();
+
+				FontCharacter tempfchar = new FontCharacter((ushort)i, CharacterEntries[charindex]);
+
+				if (CharacterPointers.Contains(charindex))
+					tempfchar.isdupe = true;
+				else
+					CharacterPointers.Add(charindex);
+
+				tempfont.Characters.Add(tempfchar);
+				tempfchar = null;
+
+			}
+
+			Fonts.Add(tempfont);
+
+
+			br.Close();
+			ms.Close();
+			return 0;
+		}
+
+		public void RebuildPkg(string inputpkg)
 		{
 			UInt16 blockheader = 8;
 
@@ -258,7 +362,7 @@ namespace FontPackager
 					dw.Write(Fonts[i].Characters[j].Data.dataSize);
 					dw.Write(Fonts[i].Characters[j].Data.width);
 					dw.Write(Fonts[i].Characters[j].Data.height);
-					dw.Write(Fonts[i].Characters[j].Data.fType);
+					dw.Write(Fonts[i].Characters[j].Data.leftpad);
 					dw.Write(Fonts[i].Characters[j].Data.dispHeight);
 					dw.Write(Fonts[i].Characters[j].Data.compressedData);
 
@@ -351,7 +455,7 @@ namespace FontPackager
 				bw.Write(BlockInfo[i].endIndex.fontIndex);
 			}
 
-			//clean up eny nonexistant block info
+			//clean up any nonexistant block info
 			for (int i = 0; i < (maxFontCount - Fonts.Count); i++)
 				bw.Write((Int64)0);
 
@@ -392,6 +496,79 @@ namespace FontPackager
 			fs.Close();
 		}
 
+		public void RebuildFile(string input, int fontindex)
+		{
+			MemoryStream chartable = new MemoryStream();
+			MemoryStream chardata = new MemoryStream();
+			BinaryWriter ct = new BinaryWriter(chartable);
+			BinaryWriter cd = new BinaryWriter(chardata);
+
+			FileStream fs = new FileStream(input, FileMode.Open, FileAccess.Write);
+			BinaryWriter bw = new BinaryWriter(fs);
+
+			List<int> writtenindexes = new List<int>();
+			List<CharacterData> writtenchars = new List<CharacterData>();
+
+			//get the real amount of characters in the font
+			int blahh = Fonts[fontindex].Characters.Count(x => x.isdupe == false);
+
+			int dataoffset = 0x40400 + (blahh * 0x10);
+
+			//create the last 2 blocks of the file while updating indexes
+			foreach (FontCharacter charr in Fonts[fontindex].Characters)
+			{
+				bw.BaseStream.Position = 0x400 + (charr.CharCode * 4);
+
+				//Figure out if the character has already been written
+				if (!writtenchars.Contains(charr.Data))
+				{
+					int tableindex = writtenchars.Count;
+
+					writtenchars.Add(charr.Data);
+
+					ct.Write(charr.Data.dispWidth);
+					ct.Write(charr.Data.dataSize);
+					ct.Write(charr.Data.width);
+					ct.Write(charr.Data.height);
+					ct.Write(charr.Data.leftpad);
+					ct.Write(charr.Data.dispHeight);
+					ct.Write(dataoffset);
+
+					cd.Write(charr.Data.compressedData);
+
+					dataoffset += charr.Data.dataSize;
+
+					bw.Write(tableindex);
+				}
+				else
+				{
+					bw.Write(writtenchars.IndexOf(charr.Data));
+				}
+					
+			}
+
+			bw.BaseStream.Position = 0x204;
+			bw.Write(Fonts[fontindex].LineHeight);
+			bw.Write(Fonts[fontindex].LineTopPad);
+			bw.Write(Fonts[fontindex].LineBottomPad);
+			bw.Write(Fonts[fontindex].LineIndent);
+			bw.Write(writtenchars.Count);
+			bw.BaseStream.Position += 0x8;
+			bw.Write((int)chardata.Length);
+
+			bw.BaseStream.SetLength(0x40400);
+
+			bw.BaseStream.Position = 0x40400;
+			bw.Write(chartable.ToArray());
+			bw.Write(chardata.ToArray());
+
+			ct.Close();
+			cd.Close();
+			chartable.Close();
+			chardata.Close();
+			bw.Close();
+			fs.Close();
+		}
 
 		/// <summary>
 		/// Converts the given System.Drawing.Image and adds or replaces to the given font index/character.
@@ -400,7 +577,7 @@ namespace FontPackager
 		/// <param name="fontindex"></param>
 		/// <param name="image"></param>
 		/// <returns></returns>
-		public void AddCustomCharacter(UInt16 charcode, int fontindex, Image image, bool tint, int dwidth = -1)
+		public void AddCustomCharacter(UInt16 charcode, int fontindex, Image image, CharTint tint, int dwidth = -1)
 		{
 			Bitmap bm = (Bitmap)image;
 			BitmapData bd = bm.LockBits(
@@ -460,24 +637,45 @@ namespace FontPackager
 				ushort pixel = (ushort)((AR << 8) | GB);
 
 				//adjust whites/blacks if requested
-				if (tint)
+				switch (tint)
 				{
-					if ((pixel & 0xFFF) == 0x000) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x100);
-					else if ((pixel & 0xFFF) == 0x111) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x110);
-					else if ((pixel & 0xFFF) == 0x222) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x221);
-					else if ((pixel & 0xFFF) == 0x333) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x332);
-					else if ((pixel & 0xFFF) == 0x444) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x443);
-					else if ((pixel & 0xFFF) == 0x555) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x554);
-					else if ((pixel & 0xFFF) == 0x666) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x665);
-					else if ((pixel & 0xFFF) == 0x777) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x776);
-					else if ((pixel & 0xFFF) == 0x888) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x887);
-					else if ((pixel & 0xFFF) == 0x999) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x998);
-					else if ((pixel & 0xFFF) == 0xAAA) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xAA9);
-					else if ((pixel & 0xFFF) == 0xBBB) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xBBA);
-					else if ((pixel & 0xFFF) == 0xCCC) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xCCB);
-					else if ((pixel & 0xFFF) == 0xDDD) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xDDC);
-					else if ((pixel & 0xFFF) == 0xEEE) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xEED);
-					else if ((pixel & 0xFFF) == 0xFFF) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xFFE);	
+					case CharTint.Cool:
+						if ((pixel & 0xFFF) == 0x000) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x001);
+						else if ((pixel & 0xFFF) == 0x111) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x011);
+						else if ((pixel & 0xFFF) == 0x222) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x122);
+						else if ((pixel & 0xFFF) == 0x333) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x233);
+						else if ((pixel & 0xFFF) == 0x444) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x344);
+						else if ((pixel & 0xFFF) == 0x555) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x455);
+						else if ((pixel & 0xFFF) == 0x666) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x566);
+						else if ((pixel & 0xFFF) == 0x777) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x677);
+						else if ((pixel & 0xFFF) == 0x888) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x788);
+						else if ((pixel & 0xFFF) == 0x999) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x899);
+						else if ((pixel & 0xFFF) == 0xAAA) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x9AA);
+						else if ((pixel & 0xFFF) == 0xBBB) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xABB);
+						else if ((pixel & 0xFFF) == 0xCCC) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xBCC);
+						else if ((pixel & 0xFFF) == 0xDDD) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xCDD);
+						else if ((pixel & 0xFFF) == 0xEEE) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xDEE);
+						else if ((pixel & 0xFFF) == 0xFFF) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xEFF);
+						break;
+
+					case CharTint.Warm:
+						if ((pixel & 0xFFF) == 0x000) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x100);
+						else if ((pixel & 0xFFF) == 0x111) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x110);
+						else if ((pixel & 0xFFF) == 0x222) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x221);
+						else if ((pixel & 0xFFF) == 0x333) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x332);
+						else if ((pixel & 0xFFF) == 0x444) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x443);
+						else if ((pixel & 0xFFF) == 0x555) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x554);
+						else if ((pixel & 0xFFF) == 0x666) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x665);
+						else if ((pixel & 0xFFF) == 0x777) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x776);
+						else if ((pixel & 0xFFF) == 0x888) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x887);
+						else if ((pixel & 0xFFF) == 0x999) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x998);
+						else if ((pixel & 0xFFF) == 0xAAA) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xAA9);
+						else if ((pixel & 0xFFF) == 0xBBB) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xBBA);
+						else if ((pixel & 0xFFF) == 0xCCC) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xCCB);
+						else if ((pixel & 0xFFF) == 0xDDD) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xDDC);
+						else if ((pixel & 0xFFF) == 0xEEE) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xEED);
+						else if ((pixel & 0xFFF) == 0xFFF) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xFFE);
+						break;
 				}
 
 				pixelList.Add(pixel);
@@ -565,23 +763,7 @@ namespace FontPackager
 				run = 0;
 				byte codeL = 0;
 
-				//correct alpha, dunno if proper but prevents "holes" in the final image
-				if (alpha == 0xE)
-					alpha = 0xF;
-				if (alpha == 0xD)
-					alpha = 0xC;
-				if (alpha == 0xA)
-					alpha = 0xB;
-				if (alpha == 0x9)
-					alpha = 0x8;
-				if (alpha == 0x6)
-					alpha = 0x7;
-				if (alpha == 0x5)
-					alpha = 0x4;
-				if (alpha == 0x2)
-					alpha = 0x3;
-				if (alpha == 0x1)
-					alpha = 0x0;
+				alpha = FixAlpha(alpha);
 
 				if (alpha == 0)
 					codeL = 0x80;
@@ -605,23 +787,7 @@ namespace FontPackager
 				//get alpha for the next pixel
 				alpha = (nextpixel & 0xF000) >> 12;
 
-				//correct alpha, dunno if proper but prevents "holes" in the final image
-				if (alpha == 0xE)
-					alpha = 0xF;
-				if (alpha == 0xD)
-					alpha = 0xC;
-				if (alpha == 0xA)
-					alpha = 0xB;
-				if (alpha == 0x9)
-					alpha = 0x8;
-				if (alpha == 0x6)
-					alpha = 0x7;
-				if (alpha == 0x5)
-					alpha = 0x4;
-				if (alpha == 0x2)
-					alpha = 0x3;
-				if (alpha == 0x1)
-					alpha = 0x0;
+				alpha = FixAlpha(alpha);
 
 				//find run and limit if alpha is unsupported for a longer one
 				while ((i + 1 + run) < pixelList.Count && (pixelList[i + 1 + run]) == (nextpixel) && run < 5)
@@ -691,12 +857,12 @@ namespace FontPackager
 
 			if (existingindex != -1)
 			{
-				ci.fType = Fonts[fontindex].Characters[existingindex].Data.fType;
+				ci.leftpad = Fonts[fontindex].Characters[existingindex].Data.leftpad;
 				ci.dispHeight = Fonts[fontindex].Characters[existingindex].Data.dispHeight;
 			}
 			else
 			{
-				ci.fType = 0;
+				ci.leftpad = 0;
 				ci.dispHeight = (ushort)Fonts[fontindex].LineHeight;
 			}
 
@@ -711,7 +877,11 @@ namespace FontPackager
 			ci.compressedData = data.ToArray();
 			ci.dataSize = (UInt16)ci.compressedData.Length;
 
+			
+
 			FontCharacter ife = new FontCharacter(charcode, ci);
+
+			ife.isdupe = false;
 
 			if (existingindex != -1)
 				Fonts[fontindex].Characters[existingindex] = ife;
@@ -721,6 +891,36 @@ namespace FontPackager
 				Fonts[fontindex].SortCharacters();
 			}
 		}
+
+		internal int FixAlpha(int alpha)
+		{
+			//correct alpha, dunno if proper but prevents "holes" in the final image
+			if (alpha == 0xE)
+				alpha = 0xF;
+			if (alpha == 0xD)
+				alpha = 0xC;
+			if (alpha == 0xA)
+				alpha = 0xB;
+			if (alpha == 0x9)
+				alpha = 0x8;
+			if (alpha == 0x6)
+				alpha = 0x7;
+			if (alpha == 0x5)
+				alpha = 0x4;
+			if (alpha == 0x2)
+				alpha = 0x3;
+			if (alpha == 0x1)
+				alpha = 0x0;
+
+			return alpha;
+		}
+	}
+
+	public enum CharTint
+	{
+		None,
+		Cool,
+		Warm
 	}
 
 	public class FontHeaderInfo
@@ -756,7 +956,7 @@ namespace FontPackager
 		public Int16 LineIndent { get; set; }
 
 		private int KerningPairIndexOffset { get; set; }
-		private int KerningPairIndexCount { get; set; }
+		private int KerningPairCount { get; set; }
 
 		public byte[] KerningPairIndexTable { get; set; }
 
@@ -784,11 +984,11 @@ namespace FontPackager
 			LineBottomPad = br.ReadInt16();
 			LineIndent = br.ReadInt16();
 			KerningPairIndexOffset = br.ReadInt32();
-			KerningPairIndexCount = br.ReadInt32(); //unsupported atm
+			KerningPairCount = br.ReadInt32(); //unsupported atm
 
-			KerningPairIndexTable = br.ReadBytes(KerningPairIndexCount);
+			KerningPairIndexTable = br.ReadBytes(0x100);
 
-			KerningPairOffset = br.ReadInt32(); //x134
+			KerningPairOffset = br.ReadInt32();
 			unk2 = br.ReadInt32();
 			CharacterCount = br.ReadInt32();
 			unk4 = br.ReadInt32();
@@ -799,8 +999,26 @@ namespace FontPackager
 			CompressedSize = br.ReadInt32();
 			DecompressedSize = br.ReadInt32();
 
-			if (KerningPairIndexCount > 0)
-				KerningPairTable = br.ReadBytes(256);
+			if (KerningPairCount > 0)
+				KerningPairTable = br.ReadBytes(KerningPairCount * 4);
+		}
+
+		public void ReadH2Header(BinaryReader br)
+		{
+			LineHeight = br.ReadInt16();
+			LineTopPad = br.ReadInt16();
+			LineBottomPad = br.ReadInt16();
+			LineIndent = br.ReadInt16();
+			CharacterCount = br.ReadInt32();
+			unk7 = br.ReadInt32();
+			unk8 = br.ReadInt32();
+			CompressedSize = br.ReadInt32();
+			DecompressedSize = br.ReadInt32();
+
+			KerningPairCount = br.ReadInt32();
+
+			if (KerningPairCount > 0)
+				KerningPairTable = br.ReadBytes(KerningPairCount * 4);
 		}
 
 		public List<FontCharacter> Characters = new List<FontCharacter>();
@@ -824,6 +1042,8 @@ namespace FontPackager
 	{
 		public UInt16 CharCode { get; set; }
 		public CharacterData Data { get; set; }
+
+		public bool isdupe { get; set; }
 
 		public FontCharacter(UInt16 code, CharacterData _char)
 		{
@@ -896,8 +1116,10 @@ namespace FontPackager
 		public UInt16 dataSize { get; set; }
 		public UInt16 width { get; set; }
 		public UInt16 height { get; set; }
-		public Int16 fType { get; set; }
+		public Int16 leftpad { get; set; }
 		public UInt16 dispHeight { get; set; }
+
+		public UInt32 OffsetH2 { get; set; }
 
 		public byte[] compressedData { get; set; }
 		public byte[] Data { get; set; }
@@ -911,7 +1133,7 @@ namespace FontPackager
 			this.Bpp = 4;
 		}
 
-		public void Read(BinaryReader br, int offset)
+		public void Read(BinaryReader br, int offset, bool h2 = false)
 		{
 			br.BaseStream.Position = offset;
 
@@ -919,10 +1141,13 @@ namespace FontPackager
 			dataSize = br.ReadUInt16();
 			width = br.ReadUInt16();
 			height = br.ReadUInt16();
-			fType = br.ReadInt16();
+			leftpad = br.ReadInt16();
 			dispHeight = br.ReadUInt16();
 
-			compressedData = br.ReadBytes(dataSize);
+			if (h2)
+				OffsetH2 = br.ReadUInt32();
+			else
+				compressedData = br.ReadBytes(dataSize);
 		}
 
 		public BitmapSource getImage()

@@ -1,7 +1,7 @@
 # Font Packager
-Halo "font_package.bin" Editor
+Blam Engine Font File Editor
 
-Font Packager is a tool to open and manipulate the font_package.bin files used in the 360 Halos as well as Halo Online and Halo 5 (which only use packages for a couple legacy functions).
+Font Packager is a tool to open and manipulate the font-related files of second-gen and third-gen blam engine games, as well as Halo Online and Halo 5 (the latter only uses font packages for a couple legacy functions).
 
 
 # Credits

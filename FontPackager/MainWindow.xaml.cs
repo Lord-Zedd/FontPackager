@@ -37,22 +37,40 @@ namespace FontPackager
 			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
 			ofd.RestoreDirectory = true;
 			ofd.Title = "Open Font Package";
-			ofd.Filter = "font_package (*.bin)|*.bin";
+			ofd.Filter = "Font Collection (*.bin,*.txt)|*.bin;*.txt|Single H2 Font (*.*) | *";
 			if ((bool)ofd.ShowDialog())
 			{
 				package = new FontPackage();
 
-				switch (package.Load(ofd.FileName))
+				if (!ofd.FileName.EndsWith(".bin"))
 				{
-					case 0:
-						break;
-					case 1:
-						WriteLog("File \"" + ofd.SafeFileName + "\" has an invalid header version value and was not loaded.");
-						return;
-					case 2:
-						WriteLog("File \"" + ofd.SafeFileName + "\" has a font count of 0 and was not loaded.");
-						return;
+					switch (package.LoadH2(ofd.FileName))
+					{
+						case 0:
+							break;
+						case 1:
+							WriteLog("File \"" + ofd.SafeFileName + "\" has an invalid header version value and was not loaded.");
+							return;
+						case 2:
+							WriteLog("List \"" + ofd.SafeFileName + "\" contained no valid fonts.");
+							return;
+					}
 				}
+				else
+				{
+					switch (package.Load(ofd.FileName))
+					{
+						case 0:
+							break;
+						case 1:
+							WriteLog("File \"" + ofd.SafeFileName + "\" has an invalid header version value and was not loaded.");
+							return;
+						case 2:
+							WriteLog("File \"" + ofd.SafeFileName + "\" has a font count of 0 and was not loaded.");
+							return;
+					}
+				}
+
 
 				fontslist.Items.Clear();
 
@@ -65,15 +83,15 @@ namespace FontPackager
 
 				for (int i = 0; i < package.Fonts.Count; i++)
 				{
-					fontslist.Items.Add(i.ToString() + ": " + package.Fonts[i].Name + "  [" + package.Fonts[i].Characters.Count + "]");
+					fontslist.Items.Add(i.ToString() + ": " + package.Fonts[i].Name + "  [" + package.Fonts[i].CharacterCount + "]");
 
-					if (package.Fonts[i].Characters.Count > 5000)
+					if (package.Fonts[i].CharacterCount > 5000)
 						bigfont = true;
 				}
 
 				fontslist.SelectedIndex = 0;
 
-				WriteLog("Font Package \"" + ofd.SafeFileName + "\" has been loaded successfully with " + fontslist.Items.Count.ToString() + " fonts.");
+				WriteLog("File \"" + ofd.SafeFileName + "\" has been loaded successfully with " + fontslist.Items.Count.ToString() + " fonts.");
 
 				if (bigfont)
 					WriteLog("NOTE: Package contains one or more fonts with over 5000 characters, performance may suffer.");
@@ -83,8 +101,41 @@ namespace FontPackager
 
 		private void btnSavepkg_Click(object sender, RoutedEventArgs e)
 		{
-			package.Rebuild(inputpkgpath.Text);
-			WriteLog("Font Package \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" has been saved successfully.");
+			if (!inputpkgpath.Text.EndsWith(".bin"))
+			{
+				if (inputpkgpath.Text.EndsWith(".txt"))
+				{
+					string[] listfonts = File.ReadAllLines(inputpkgpath.Text);
+					listfonts = listfonts.Distinct().ToArray();
+					string basepath = inputpkgpath.Text.Substring(0, inputpkgpath.Text.LastIndexOf("\\") + 1);
+
+					for (int i = 0; i < listfonts.Count(); i++)
+					{
+						if (File.Exists(basepath + listfonts[i]))
+						{
+							package.RebuildFile(basepath + listfonts[i], i);
+						}
+					}
+
+					WriteLog("Fonts from \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" have been saved successfully.");
+				}
+				else
+				{
+					package.RebuildFile(inputpkgpath.Text, 0);
+					WriteLog("Font \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" has been saved successfully.");
+				}
+					
+			}
+			else
+			{
+				package.RebuildPkg(inputpkgpath.Text);
+
+				WriteLog("Font Package \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" has been saved successfully.");
+			}
+
+
+			
+			
 		}
 		#endregion
 
@@ -98,6 +149,11 @@ namespace FontPackager
 
 			for (int i = 0; i < package.Fonts[fontslist.SelectedIndex].Characters.Count; i++)
 			{
+				if (package.Fonts[fontslist.SelectedIndex].Characters[i].Data.width == 0)
+					continue;
+				if (package.Fonts[fontslist.SelectedIndex].Characters[i].isdupe == true)
+					continue;
+
 				ListBoxItem fontChar = new ListBoxItem();
 
 				fontChar.Content = new System.Windows.Controls.Image()
@@ -125,7 +181,7 @@ namespace FontPackager
 					"\r\nDisplay Width: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispWidth +
 					"\r\nHeight: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height +
 					"\r\nDisplay Height: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispHeight +
-					"\r\nUnknown(ftype): " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.fType;
+					"\r\nLeft Pad: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.leftpad;
 				fontChar.Height = package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height;
 				fontChar.Padding = new Thickness(0);
 				fontChar.VerticalAlignment = System.Windows.VerticalAlignment.Center;
@@ -252,7 +308,7 @@ namespace FontPackager
 
 				UInt16 char2replace = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].CharCode;
 
-				package.AddCustomCharacter(char2replace, fontslist.SelectedIndex, newpic, tintCheck.IsChecked.Value);
+				package.AddCustomCharacter(char2replace, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex);
 
 				newpic.Dispose();
 
@@ -321,7 +377,7 @@ namespace FontPackager
 			if (path != null)
 			{
 				System.Drawing.Image newpic = System.Drawing.Image.FromFile(path);
-				package.AddCustomCharacter(char2add, fontslist.SelectedIndex, newpic, tintCheck.IsChecked.Value);
+				package.AddCustomCharacter(char2add, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex);
 
 				newpic.Dispose();
 				UpdateFontDisplay();
@@ -340,7 +396,7 @@ namespace FontPackager
 
 			ushort width = 0;
 			ushort height = 0;
-			short unk = 0;
+			short leftpad = 0;
 
 			try
 			{
@@ -364,7 +420,7 @@ namespace FontPackager
 
 			try
 			{
-				unk = short.Parse(charUnk.Text);
+				leftpad = short.Parse(charLPad.Text);
 			}
 			catch
 			{
@@ -374,7 +430,7 @@ namespace FontPackager
 
 			package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.dispWidth = width;
 			package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.dispHeight = height;
-			package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.fType = unk;
+			package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.leftpad = leftpad;
 
 			WriteLog("Character update successful.");
 			UpdateFontDisplay();
@@ -486,7 +542,7 @@ namespace FontPackager
 					}
 						
 
-					package.AddCustomCharacter(abc.CharCodes[i], fontslist.SelectedIndex, System.Drawing.Image.FromStream(ms), false, dispwidth);
+					package.AddCustomCharacter(abc.CharCodes[i], fontslist.SelectedIndex, System.Drawing.Image.FromStream(ms), CharTint.None, dispwidth);
 
 					ms.Close();
 					bm.Dispose();
@@ -514,10 +570,6 @@ namespace FontPackager
 			if (endchar == 0xFFFF)
 				return;
 
-			ushort fontindex = ParseChar("Copy", HOfont.Text);
-			if (fontindex == 0xFFFF)
-				return;
-
 			if (startchar > endchar)
 			{
 				WriteLog("Copy failed: Invalid character range.");
@@ -527,12 +579,36 @@ namespace FontPackager
 			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
 			ofd.RestoreDirectory = true;
 			ofd.Title = "Open Font Package";
-			ofd.Filter = "font_package (*.bin)|*.bin";
+			ofd.Filter = "Font Package (*.bin)|*.bin|Single H2 Font (*.*) | *";
 			if ((bool)ofd.ShowDialog())
 			{
 				FontPackage package2 = new FontPackage();
 
-				package2.Load(ofd.FileName);
+				bool ish2 = false;
+
+				if (ofd.FileName.EndsWith(".bin"))
+					package2.Load(ofd.FileName);
+				else if (!ofd.FileName.EndsWith(".txt"))
+				{
+					package2.LoadH2(ofd.FileName);
+					ish2 = true;
+				}
+					
+				else
+				{
+					WriteLog("Copy failed: Halo 2 .txt files not supported for copying.");
+				}
+
+				ushort fontindex = 0;
+
+				if (!ish2)
+				{
+					fontindex = ParseChar("Copy", HOfont.Text);
+					if (fontindex == 0xFFFF && !ish2)
+						return;
+				}
+
+				
 
 				if (fontindex > package2.Fonts.Count)
 				{
@@ -603,7 +679,7 @@ namespace FontPackager
 				System.Drawing.Image newpic = System.Drawing.Image.FromFile(path);
 
 				for (int i = 0; i < package.Fonts.Count; i++)
-					package.AddCustomCharacter(char2add, i, newpic, tintCheck.IsChecked.Value);
+					package.AddCustomCharacter(char2add, i, newpic, (CharTint)tintEnum.SelectedIndex);
 
 				newpic.Dispose();
 				UpdateFontDisplay();
@@ -683,7 +759,7 @@ namespace FontPackager
 
 				charWidth.Text = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.dispWidth.ToString();
 				charHeight.Text = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.dispHeight.ToString();
-				charUnk.Text = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.fType.ToString();
+				charLPad.Text = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.leftpad.ToString();
 			}
 			else
 			{
@@ -694,7 +770,7 @@ namespace FontPackager
 
 				charWidth.Text = "";
 				charHeight.Text = "";
-				charUnk.Text = "";
+				charLPad.Text = "";
 			}
 		}
 
