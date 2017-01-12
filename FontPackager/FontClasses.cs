@@ -166,11 +166,30 @@ namespace FontPackager
 
 				if (Fonts.Count == 0)
 					return 2;
+				result = 0;
 			}
 			else
 				result = LoadFile(filename);
 
 			return result;
+		}
+
+		public int LoadH2Folder(string folder)
+		{
+			int result = 1;
+
+			string[] files = Directory.GetFiles(folder);
+
+			for (int i = 0; i < files.Count(); i++)
+			{
+				if (!Path.HasExtension(files[i]))
+					result = LoadFile(files[i]);
+			}
+
+			if (Fonts.Count == 0)
+				return 1;
+
+			return 0;
 		}
 
 		private int LoadFile(string filename)
@@ -243,6 +262,7 @@ namespace FontPackager
 
 			}
 
+			tempfont.H2File = filename;
 			Fonts.Add(tempfont);
 
 
@@ -510,7 +530,7 @@ namespace FontPackager
 			List<CharacterData> writtenchars = new List<CharacterData>();
 
 			//get the real amount of characters in the font
-			int blahh = Fonts[fontindex].Characters.Count(x => x.isdupe == false);
+			int blahh = Fonts[fontindex].Characters.GroupBy(c => c.Data).Distinct().Count();
 
 			int dataoffset = 0x40400 + (blahh * 0x10);
 
@@ -571,7 +591,7 @@ namespace FontPackager
 		}
 
 		/// <summary>
-		/// Converts the given System.Drawing.Image and adds or replaces to the given font index/character.
+		/// Converts the given System.Drawing.Image and adds or replaces to the given font index/character. Left/Right padding is removed and set as the display width.
 		/// </summary>
 		/// <param name="charcode"></param>
 		/// <param name="fontindex"></param>
@@ -579,6 +599,10 @@ namespace FontPackager
 		/// <returns></returns>
 		public void AddCustomCharacter(UInt16 charcode, int fontindex, Image image, CharTint tint, int dwidth = -1)
 		{
+			int origwidth = image.Width;
+
+			image = CropWidth((Bitmap)image);
+
 			Bitmap bm = (Bitmap)image;
 			BitmapData bd = bm.LockBits(
 				new Rectangle(new Point(0, 0), bm.Size),
@@ -685,166 +709,169 @@ namespace FontPackager
 			ushort basePixel = 0xFFF;
 
 			//start compressing pixels like the game do
-			for (int i = 0; i < pixelList.Count; i++)
-			{
-				byte run = 0;
-				ushort pixel = pixelList[i];
-				ushort nextpixel = 0;
-				bool dontChange = false;
-
-				//grab the next pixel, or prevent writing
-				try
+			if (image.Width > 1)
+				for (int i = 0; i < pixelList.Count; i++)
 				{
-					nextpixel = pixelList[i + 1];
-				}
-				catch
-				{
-					dontChange = true;
-				}
+					byte run = 0;
+					ushort pixel = pixelList[i];
+					ushort nextpixel = 0;
+					bool dontChange = false;
 
-				//get the alpha for the first pixel
-				var alpha = (pixel & 0xF000) >> 12;
+					//grab the next pixel, or prevent writing
+					try
+					{
+						nextpixel = pixelList[i + 1];
+					}
+					catch
+					{
+						dontChange = true;
+					}
 
-				//extra checking to see if we are updating the base
-				if ((pixel & 0xFFF) == (basePixel & 0xFFF))
-				{
-					if ((alpha == 0 ||
-						alpha == 3 ||
-						alpha == 4 ||
-						alpha == 7 ||
-						alpha == 8 ||
-						alpha == 0xB ||
-						alpha == 0xC ||
-						alpha == 0xF) && ((pixel & 0xFFF) == (nextpixel & 0xFFF)))
+					//get the alpha for the first pixel
+					var alpha = (pixel & 0xF000) >> 12;
+
+					//extra checking to see if we are updating the base
+					if ((pixel & 0xFFF) == (basePixel & 0xFFF))
+					{
+						if ((alpha == 0 ||
+							alpha == 3 ||
+							alpha == 4 ||
+							alpha == 7 ||
+							alpha == 8 ||
+							alpha == 0xB ||
+							alpha == 0xC ||
+							alpha == 0xF) && ((pixel & 0xFFF) == (nextpixel & 0xFFF)))
 							dontChange = true;
-				}
+					}
 
-				//do we write base change bytes
-				if ((pixel != basePixel) && ((pixel & 0xFFF) != (basePixel & 0xFFF)) ||
-					(!dontChange ))
-				{
-					data.Add(0);
-					data.Add((byte)((pixel & 0xFF00) >> 8));
-					data.Add((byte)pixel);
-
-					basePixel = (ushort)(pixel);
-					continue;
-				}
-
-				//do we write 0 alpha run
-				if ((pixel & 0xF000) == 0)
-				{
-					while ((i + run) < pixelList.Count && (pixelList[i + run] & 0xF000) == 0 && run < 0x3F)
-						run++;
-
-					if (run > 1)
+					//do we write base change bytes
+					if ((pixel != basePixel) && ((pixel & 0xFFF) != (basePixel & 0xFFF)) ||
+						(!dontChange))
 					{
-						data.Add(run);
-						i += run - 1;
+						data.Add(0);
+						data.Add((byte)((pixel & 0xFF00) >> 8));
+						data.Add((byte)pixel);
+
+						basePixel = (ushort)(pixel);
 						continue;
 					}
-				}
 
-				//do we write F alpha run
-				if ((pixel & 0xF000) == 0xF000)
-				{
-					while ((i + run) < pixelList.Count && pixelList[i + run] == pixel && run < 0x3F)
-						run++;
-
-					if (run > 1)
+					//do we write 0 alpha run
+					if ((pixel & 0xF000) == 0)
 					{
-						data.Add((byte)((1 << 6) | run));
-						i += run - 1;
-						continue;
+						while ((i + run) < pixelList.Count && (pixelList[i + run] & 0xF000) == 0 && run < 0x3F)
+							run++;
+
+						if (run > 1)
+						{
+							data.Add(run);
+							i += run - 1;
+							continue;
+						}
 					}
-				}
 
-				//guess we write run of varying alphas
-				run = 0;
-				byte codeL = 0;
+					//do we write F alpha run
+					if ((pixel & 0xF000) == 0xF000)
+					{
+						while ((i + run) < pixelList.Count && pixelList[i + run] == pixel && run < 0x3F)
+							run++;
 
-				alpha = FixAlpha(alpha);
+						if (run > 1)
+						{
+							data.Add((byte)((1 << 6) | run));
+							i += run - 1;
+							continue;
+						}
+					}
 
-				if (alpha == 0)
-					codeL = 0x80;
-				else if (alpha == 3)
-					codeL = 0x88;
-				else if (alpha == 4)
-					codeL = 0x90;
-				else if (alpha == 7)
-					codeL = 0x98;
-				else if (alpha == 8)
-					codeL = 0xA0;
-				else if (alpha == 0xB)
-					codeL = 0xA8;
-				else if (alpha == 0xC)
-					codeL = 0xB0;
-				else if (alpha == 0xF)
-					codeL = 0xB8;
+					//guess we write run of varying alphas
+					run = 0;
+					byte codeL = 0;
 
-				byte codeR = 0;
+					alpha = FixAlpha(alpha);
 
-				//get alpha for the next pixel
-				alpha = (nextpixel & 0xF000) >> 12;
-
-				alpha = FixAlpha(alpha);
-
-				//find run and limit if alpha is unsupported for a longer one
-				while ((i + 1 + run) < pixelList.Count && (pixelList[i + 1 + run]) == (nextpixel) && run < 5)
-					run++;
-
-				if (run > 1 && alpha != 0 && alpha != 0xF)
-					run = 1;
-
-				//start writing
-				if (run == 0)
-				{
-					data.Add((byte)(codeL));
-					continue;
-				}
-				else if (run == 1)
-				{
 					if (alpha == 0)
-						codeR = 0;
+						codeL = 0x80;
 					else if (alpha == 3)
-						codeR = 1;
+						codeL = 0x88;
 					else if (alpha == 4)
-						codeR = 2;
+						codeL = 0x90;
 					else if (alpha == 7)
-						codeR = 3;
+						codeL = 0x98;
 					else if (alpha == 8)
-						codeR = 4;
+						codeL = 0xA0;
 					else if (alpha == 0xB)
-						codeR = 5;
+						codeL = 0xA8;
 					else if (alpha == 0xC)
-						codeR = 6;
+						codeL = 0xB0;
 					else if (alpha == 0xF)
-						codeR = 7;
+						codeL = 0xB8;
 
-					data.Add((byte)((codeL | codeR) | 0xC0));
-					i += run;
-					continue;
-				}
-				else if (run == 2)
-					codeR = (alpha == 0xF) ? (byte)3 : (byte)7;
-				else if (run == 3)
-					codeR = (alpha == 0xF) ? (byte)2 : (byte)6;
-				else if (run == 4)
-					codeR = (alpha == 0xF) ? (byte)1 : (byte)5;
-				else if (run == 5)
-				{
-					if (alpha == 0xF)
+					byte codeR = 0;
+
+					//get alpha for the next pixel
+					alpha = (nextpixel & 0xF000) >> 12;
+
+					alpha = FixAlpha(alpha);
+
+					//find run and limit if alpha is unsupported for a longer one
+					while ((i + 1 + run) < pixelList.Count && (pixelList[i + 1 + run]) == (nextpixel) && run < 5)
+						run++;
+
+					if (run > 1 && alpha != 0 && alpha != 0xF)
+						run = 1;
+
+					//start writing
+					if (run == 0)
 					{
-						run--; //run becomes 4;
-						codeR = 1;
+						data.Add((byte)(codeL));
+						continue;
 					}
-					else
-						codeR = 4;
-				}
+					else if (run == 1)
+					{
+						if (alpha == 0)
+							codeR = 0;
+						else if (alpha == 3)
+							codeR = 1;
+						else if (alpha == 4)
+							codeR = 2;
+						else if (alpha == 7)
+							codeR = 3;
+						else if (alpha == 8)
+							codeR = 4;
+						else if (alpha == 0xB)
+							codeR = 5;
+						else if (alpha == 0xC)
+							codeR = 6;
+						else if (alpha == 0xF)
+							codeR = 7;
 
-				data.Add((byte)(codeL | codeR));
-				i += run;
-			}
+						data.Add((byte)((codeL | codeR) | 0xC0));
+						i += run;
+						continue;
+					}
+					else if (run == 2)
+						codeR = (alpha == 0xF) ? (byte)3 : (byte)7;
+					else if (run == 3)
+						codeR = (alpha == 0xF) ? (byte)2 : (byte)6;
+					else if (run == 4)
+						codeR = (alpha == 0xF) ? (byte)1 : (byte)5;
+					else if (run == 5)
+					{
+						if (alpha == 0xF)
+						{
+							run--; //run becomes 4;
+							codeR = 1;
+						}
+						else
+							codeR = 4;
+					}
+
+					data.Add((byte)(codeL | codeR));
+					i += run;
+				}
+			else
+				data.Add(0x15);
 
 			// Check if compressed size is too large to be imported
 			if (data.Count > short.MaxValue)
@@ -870,7 +897,7 @@ namespace FontPackager
 			ci.height = (UInt16)image.Height;
 
 			if (dwidth == -1)
-				ci.dispWidth = (UInt16)(ci.width);
+				ci.dispWidth = (UInt16)origwidth;
 			else
 				ci.dispWidth = (ushort)dwidth;
 
@@ -890,6 +917,58 @@ namespace FontPackager
 				Fonts[fontindex].Characters.Add(ife);
 				Fonts[fontindex].SortCharacters();
 			}
+		}
+
+		internal Bitmap CropWidth(Bitmap image)
+		{
+			if (image.Width == 1)
+				return image;
+
+			Bitmap bm = (Bitmap)image;
+			BitmapData bd = bm.LockBits(
+				new Rectangle(new Point(0, 0), bm.Size),
+				System.Drawing.Imaging.ImageLockMode.ReadOnly,
+				bm.PixelFormat);
+			int bytes = Math.Abs(bd.Stride) * bm.Height;
+			byte[] bmBytes = new byte[bytes];
+			System.Runtime.InteropServices.Marshal.Copy(bd.Scan0, bmBytes, 0, bytes);
+
+			int minwidth = int.MaxValue;
+			int maxwidth = 0;
+			int heightstart = int.MaxValue;
+
+			for (int i = 0; i < bd.Height; i++)
+				for (int ii = 0; ii < bd.Width; ii++)
+				{
+					var a = bmBytes[i * bd.Stride + 4 * ii + 3];
+					if (a > 0)
+					{
+						if (ii < minwidth)
+							minwidth = ii;
+						if (ii > maxwidth)
+							maxwidth = ii;
+						if (i < heightstart)
+							heightstart = i;
+					}
+				}
+
+			if (minwidth > image.Width)
+				minwidth = 1;
+			if (maxwidth < minwidth)
+				maxwidth = minwidth + 1;
+
+			bm.UnlockBits(bd);
+
+			Rectangle nopad = Rectangle.FromLTRB(minwidth, 0, maxwidth + 1, image.Height);
+			Rectangle rect = new Rectangle(0, 0, nopad.Width, nopad.Height);
+
+			Bitmap output = new Bitmap(nopad.Width, image.Height);
+			using (Graphics g = Graphics.FromImage(output))
+			{
+				g.DrawImage(image, rect, nopad, GraphicsUnit.Pixel);
+			}
+
+			return output;
 		}
 
 		internal int FixAlpha(int alpha)
@@ -946,6 +1025,15 @@ namespace FontPackager
 
 	public class PackageFont
 	{
+		public string H2File { get; set; }
+		public string H2FileSafe()
+		{
+			if (H2File != null)
+				return H2File.Substring(H2File.LastIndexOf("\\") + 1);
+			else
+				return null;
+		}
+
 		public int HeaderVersion { get; set; }
 
 		public string Name { get; set; }

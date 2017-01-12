@@ -15,6 +15,7 @@ using System.Windows.Shapes;
 using System.IO;
 using System.Drawing;
 using System.Threading;
+using System.Drawing.Imaging;
 
 namespace FontPackager
 {
@@ -55,6 +56,8 @@ namespace FontPackager
 							WriteLog("List \"" + ofd.SafeFileName + "\" contained no valid fonts.");
 							return;
 					}
+
+					btnSavefile.IsEnabled = true;
 				}
 				else
 				{
@@ -69,62 +72,63 @@ namespace FontPackager
 							WriteLog("File \"" + ofd.SafeFileName + "\" has a font count of 0 and was not loaded.");
 							return;
 					}
+
+					btnSavefile.IsEnabled = false;
 				}
-
-
-				fontslist.Items.Clear();
 
 				inputpkgpath.Text = ofd.FileName;
-				btnSavepkg.IsEnabled = true;
-				btnAddBat.IsEnabled = true;
-				btndeleteBat.IsEnabled = true;
 
-				bool bigfont = false;
+				WriteLog("File \"" + ofd.SafeFileName + "\" has been loaded successfully with " + package.Fonts.Count + " fonts.");
 
-				for (int i = 0; i < package.Fonts.Count; i++)
-				{
-					fontslist.Items.Add(i.ToString() + ": " + package.Fonts[i].Name + "  [" + package.Fonts[i].CharacterCount + "]");
-
-					if (package.Fonts[i].CharacterCount > 5000)
-						bigfont = true;
-				}
-
-				fontslist.SelectedIndex = 0;
-
-				WriteLog("File \"" + ofd.SafeFileName + "\" has been loaded successfully with " + fontslist.Items.Count.ToString() + " fonts.");
-
-				if (bigfont)
-					WriteLog("NOTE: Package contains one or more fonts with over 5000 characters, performance may suffer.");
+				FinishOpening();
 
 			}
+		}
+
+		private void btnOpenFold_Click(object sender, RoutedEventArgs e)
+		{
+			System.Windows.Forms.FolderBrowserDialog fbd = new System.Windows.Forms.FolderBrowserDialog();
+
+			System.Windows.Forms.DialogResult result = fbd.ShowDialog();
+			if (result.ToString() == "OK")
+			{
+				package = new FontPackage();
+
+				switch (package.LoadH2Folder(fbd.SelectedPath))
+				{
+					case 0:
+						break;
+					case 1:
+						WriteLog("Folder \"\\" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" contained no valid fonts.");
+						return;
+				}
+			}
+
+			inputpkgpath.Text = fbd.SelectedPath;
+
+			WriteLog("Folder \"\\" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" has been loaded successfully with " + package.Fonts.Count + " fonts.");
+
+			btnSavefile.IsEnabled = true;
+			FinishOpening();
+
 		}
 
 		private void btnSavepkg_Click(object sender, RoutedEventArgs e)
 		{
 			if (!inputpkgpath.Text.EndsWith(".bin"))
 			{
+				for (int i = 0; i < package.Fonts.Count; i++)
+				{
+					if (File.Exists(package.Fonts[i].H2File))
+						package.RebuildFile(package.Fonts[i].H2File, i);
+				}
+
 				if (inputpkgpath.Text.EndsWith(".txt"))
-				{
-					string[] listfonts = File.ReadAllLines(inputpkgpath.Text);
-					listfonts = listfonts.Distinct().ToArray();
-					string basepath = inputpkgpath.Text.Substring(0, inputpkgpath.Text.LastIndexOf("\\") + 1);
-
-					for (int i = 0; i < listfonts.Count(); i++)
-					{
-						if (File.Exists(basepath + listfonts[i]))
-						{
-							package.RebuildFile(basepath + listfonts[i], i);
-						}
-					}
-
 					WriteLog("Fonts from \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" have been saved successfully.");
-				}
+				else if (inputpkgpath.Text.EndsWith("\\"))
+					WriteLog("Fonts from \"\\" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" have been saved successfully.");
 				else
-				{
-					package.RebuildFile(inputpkgpath.Text, 0);
 					WriteLog("Font \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" has been saved successfully.");
-				}
-					
 			}
 			else
 			{
@@ -132,14 +136,46 @@ namespace FontPackager
 
 				WriteLog("Font Package \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" has been saved successfully.");
 			}
-
-
 			
-			
+		}
+
+		private void btnSavefile_Click(object sender, RoutedEventArgs e)
+		{
+			if (!inputpkgpath.Text.EndsWith(".bin"))
+			{
+				if (File.Exists(package.Fonts[fontslist.SelectedIndex].H2File))
+					package.RebuildFile(package.Fonts[fontslist.SelectedIndex].H2File, fontslist.SelectedIndex);
+
+				WriteLog("Font \"" + package.Fonts[fontslist.SelectedIndex].H2FileSafe() + "\" has been saved successfully.");
+			}
 		}
 		#endregion
 
 		#region functions
+		private void FinishOpening()
+		{
+			fontslist.Items.Clear();
+
+			btnSavepkg.IsEnabled = true;
+			btnAddBat.IsEnabled = true;
+			btndeleteBat.IsEnabled = true;
+
+			bool bigfont = false;
+
+			for (int i = 0; i < package.Fonts.Count; i++)
+			{
+				fontslist.Items.Add(i.ToString() + ": " + package.Fonts[i].Name + "  [" + package.Fonts[i].CharacterCount + "]");
+
+				if (package.Fonts[i].CharacterCount > 5000)
+					bigfont = true;
+			}
+
+			fontslist.SelectedIndex = 0;
+
+			if (bigfont)
+				WriteLog("NOTE: Package contains one or more fonts with over 5000 characters, performance may suffer.");
+		}
+
 		public void UpdateFontDisplay()
 		{
 			if (fontslist.SelectedIndex == -1)
@@ -181,7 +217,9 @@ namespace FontPackager
 					"\r\nDisplay Width: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispWidth +
 					"\r\nHeight: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height +
 					"\r\nDisplay Height: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispHeight +
-					"\r\nLeft Pad: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.leftpad;
+					"\r\nLeft Pad: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.leftpad +
+					"\r\n" + package.Fonts[fontslist.SelectedIndex].Characters[i].isdupe +
+					"\r\n" + lstChars.Items.Count;
 				fontChar.Height = package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height;
 				fontChar.Padding = new Thickness(0);
 				fontChar.VerticalAlignment = System.Windows.VerticalAlignment.Center;
@@ -195,7 +233,7 @@ namespace FontPackager
 			fontHeight.Text = package.Fonts[fontslist.SelectedIndex].LineHeight.ToString();
 			fontTPad.Text = package.Fonts[fontslist.SelectedIndex].LineTopPad.ToString();
 			fontBPad.Text = package.Fonts[fontslist.SelectedIndex].LineBottomPad.ToString();
-			fontUnk.Text = package.Fonts[fontslist.SelectedIndex].LineIndent.ToString();
+			fontLI.Text = package.Fonts[fontslist.SelectedIndex].LineIndent.ToString();
 		}
 
 		private string OpenImage()
@@ -214,7 +252,7 @@ namespace FontPackager
 		{
 			if (input.Length == 0)
 			{
-				WriteLog(command + "failed: Invalid unicode entered (Box is empty)");
+				WriteLog(command + " failed: Invalid unicode entered (Box is empty)");
 				return 0xFFFF;
 			}
 
@@ -225,13 +263,13 @@ namespace FontPackager
 				char2add = UInt16.Parse(input, System.Globalization.NumberStyles.HexNumber);
 
 				if (char2add == 0xFFFF)
-					WriteLog(command + "failed: Character 0xFFFF is invalid, use 0xFFFE.");
+					WriteLog(command + " failed: Character 0xFFFF is invalid, use 0xFFFE.");
 
 				return char2add;
 			}
 			catch
 			{
-				WriteLog(command + "failed: Invalid unicode entered (Could not parse hex)");
+				WriteLog(command + " failed: Invalid unicode entered (Could not parse hex)");
 				return 0xFFFF;
 			}
 		}
@@ -275,6 +313,46 @@ namespace FontPackager
 			return output;
 		}
 
+		private ushort CharFromSelectedItem()
+		{
+			ListBoxItem item = (ListBoxItem)lstChars.SelectedItem;
+			return ((ushort)item.Tag);
+		}
+		private int IndexFromSelectedItem()
+		{
+			return package.Fonts[fontslist.SelectedIndex].FindCharacter(CharFromSelectedItem());
+		}
+
+		public System.Drawing.Image BitmapFromFont(Font font, float offset, string txt)
+		{
+			StringFormat yee;
+
+			if (txt == " ")
+				yee = StringFormat.GenericDefault;
+			else
+				yee = StringFormat.GenericTypographic;
+
+			System.Drawing.Bitmap bmp = new Bitmap(1, 1);
+			Graphics g = Graphics.FromImage(bmp);
+
+			PointF rect = new PointF(0, offset);
+			SizeF size = g.MeasureString(txt, font, rect, yee);
+
+			if (size.Width < 1) size.Width = 1;
+			if (size.Height < 1) size.Width = 1;
+
+			bmp = new Bitmap((int)size.Width, (int)size.Height);
+			g = Graphics.FromImage(bmp);
+
+			g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
+			g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+			g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+
+			g.DrawString(txt, font, new SolidBrush(System.Drawing.Color.White), rect, yee);
+
+			return bmp;
+		}
+
 		#endregion
 
 		#region font tab controls
@@ -287,7 +365,7 @@ namespace FontPackager
 			short height = ParseHeaderShort("height", fontHeight.Text);
 			short tpad = ParseHeaderShort("top padding", fontTPad.Text);
 			short bpad = ParseHeaderShort("bottom padding", fontBPad.Text);
-			short unk = ParseHeaderShort("indent", fontUnk.Text);
+			short unk = ParseHeaderShort("indent", fontLI.Text);
 
 			if (height == -1 || tpad == -1 || bpad == -1 || unk == -1)
 				return;
@@ -306,7 +384,7 @@ namespace FontPackager
 			{
 				System.Drawing.Image newpic = System.Drawing.Image.FromFile(path);
 
-				UInt16 char2replace = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].CharCode;
+				UInt16 char2replace = CharFromSelectedItem();
 
 				package.AddCustomCharacter(char2replace, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex);
 
@@ -335,7 +413,7 @@ namespace FontPackager
 					case 1:
 						FileStream file = new FileStream(sfd.FileName, FileMode.Create, System.IO.FileAccess.Write);
 						BitmapEncoder encoder = new PngBitmapEncoder();
-						encoder.Frames.Add(BitmapFrame.Create(package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.getImage()));
+						encoder.Frames.Add(BitmapFrame.Create(package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.getImage()));
 						encoder.Save(file);
 						file.Close();
 						lstChars.UnselectAll();
@@ -344,7 +422,8 @@ namespace FontPackager
 						break;
 					case 2:
 						FileStream filex = new FileStream(sfd.FileName, FileMode.Create, System.IO.FileAccess.Write);
-						filex.Write(package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.compressedData, 0, package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.dataSize);
+						filex.Write(package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.compressedData, 0,
+							package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dataSize);
 						filex.Close();
 						lstChars.UnselectAll();
 
@@ -359,7 +438,7 @@ namespace FontPackager
 			if (lstChars.SelectedIndex != -1)
 				if (MessageBox.Show("You sure you wanna do this?", "Delete Character", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
 				{
-					ushort oldchar = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].CharCode;
+					ushort oldchar = CharFromSelectedItem();
 					package.Fonts[fontslist.SelectedIndex].Characters.RemoveAt(lstChars.SelectedIndex);
 					UpdateFontDisplay();
 
@@ -369,7 +448,7 @@ namespace FontPackager
 
 		private void btnAdd_Click(object sender, RoutedEventArgs e)
 		{
-			UInt16 char2add = ParseChar("Add ", newChar.Text);
+			UInt16 char2add = ParseChar("Add", newChar.Text);
 			if (char2add == 0xFFFF)
 				return;
 
@@ -428,9 +507,9 @@ namespace FontPackager
 				return;
 			}
 
-			package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.dispWidth = width;
-			package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.dispHeight = height;
-			package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.leftpad = leftpad;
+			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispWidth = width;
+			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispHeight = height;
+			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.leftpad = leftpad;
 
 			WriteLog("Character update successful.");
 			UpdateFontDisplay();
@@ -663,13 +742,93 @@ namespace FontPackager
 
 			UpdateFontDisplay();
 		}
+
+		private void pcgetfonts_Click(object sender, RoutedEventArgs e)
+		{
+			System.Drawing.Text.InstalledFontCollection pcfonts = new System.Drawing.Text.InstalledFontCollection();
+
+			for (int i = 0; i < pcfonts.Families.Count(); i++)
+			{
+				pcfontlist.Items.Add(pcfonts.Families[i].Name);
+			}
+
+			pcfontlist.SelectedIndex = 0;
+		}
+
+		private void pcimport_Click(object sender, RoutedEventArgs e)
+		{
+			ushort startchar = ParseChar("Copy", HOstart.Text);
+			if (startchar == 0xFFFF)
+				return;
+
+			ushort endchar = ParseChar("Copy", HOend.Text);
+			if (endchar == 0xFFFF)
+				return;
+
+			if (startchar > endchar)
+			{
+				WriteLog("Import failed: Invalid character range.");
+				return;
+			}
+
+			if (pcsize.Text.Length == 0)
+			{
+				WriteLog("Import failed: Invalid size entered (Box is empty)");
+				return;
+			}
+
+			float fontsize = 8;
+			float charoffset = 0;
+
+			try
+			{
+				fontsize = float.Parse(pcsize.Text);
+			}
+			catch
+			{
+				WriteLog("Import failed: Invalid size entered (Could not parse)");
+				return;
+			}
+
+			try
+			{
+				charoffset = float.Parse(pcoffset.Text);
+			}
+			catch
+			{
+				WriteLog("Import failed: Invalid ofset entered (Could not parse)");
+				return;
+			}
+
+			System.Drawing.FontStyle fontparams = System.Drawing.FontStyle.Regular;
+			if ((bool)pcbold.IsChecked) fontparams = System.Drawing.FontStyle.Bold;
+
+			Font importfont = new Font(pcfontlist.SelectedValue.ToString(), fontsize, fontparams);
+
+			for (ushort i = startchar; i <= endchar; i++)
+			{
+				int existindex = package.Fonts[fontslist.SelectedIndex].Characters.FindIndex(x => x.CharCode == i);
+
+				if (existindex != -1)
+				{
+					System.Drawing.Image newpic = BitmapFromFont(importfont, charoffset, ((char)i).ToString());
+					if (newpic == null) continue;
+					if (newpic.Width == 1) continue;
+					package.AddCustomCharacter((ushort)i, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex);
+
+					newpic.Dispose();
+				}
+			}
+
+			UpdateFontDisplay();
+		}
 		#endregion
 		#endregion
 
 		#region batch tab controls
 		private void btnAddBat_Click(object sender, RoutedEventArgs e)
 		{
-			UInt16 char2add = ParseChar("Batch add ", newCharBat.Text);
+			UInt16 char2add = ParseChar("Batch add", newCharBat.Text);
 			if (char2add == 0xFFFF)
 				return;
 
@@ -692,7 +851,7 @@ namespace FontPackager
 
 		private void btndeleteBat_Click(object sender, RoutedEventArgs e)
 		{
-			ushort char2delete = ParseChar("Batch remove ", deleteBat.Text);
+			ushort char2delete = ParseChar("Batch remove", deleteBat.Text);
 			if (char2delete == 0xFFFF)
 				return;
 
@@ -728,6 +887,7 @@ namespace FontPackager
 				btnFontUpdate.IsEnabled = true;
 				HObtn.IsEnabled = true;
 				btnHFix.IsEnabled = true;
+				pcimport.IsEnabled = true;
 
 				UpdateFontDisplay();
 			}
@@ -738,12 +898,13 @@ namespace FontPackager
 				btnFontUpdate.IsEnabled = false;
 				HObtn.IsEnabled = false;
 				btnHFix.IsEnabled = false;
+				pcimport.IsEnabled = false;
 				lstChars.Items.Clear();
 
 				fontHeight.Text = "";
 				fontTPad.Text = "";
 				fontBPad.Text = "";
-				fontUnk.Text = "";
+				fontLI.Text = "";
 			}
 				
 		}
@@ -757,9 +918,9 @@ namespace FontPackager
 				btnDelete.IsEnabled = true;
 				btnCharUpdate.IsEnabled = true;
 
-				charWidth.Text = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.dispWidth.ToString();
-				charHeight.Text = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.dispHeight.ToString();
-				charLPad.Text = package.Fonts[fontslist.SelectedIndex].Characters[lstChars.SelectedIndex].Data.leftpad.ToString();
+				charWidth.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispWidth.ToString();
+				charHeight.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispHeight.ToString();
+				charLPad.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.leftpad.ToString();
 			}
 			else
 			{
@@ -797,6 +958,7 @@ namespace FontPackager
 		}
 
 		#endregion
+
 	}
 }
 

@@ -5,26 +5,34 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager"
         mc:Ignorable="d"
-        Title="Font Packager v1.3" Height="600" Width="680" MinHeight="400" MinWidth="600" Background="LightGray" UseLayoutRounding="True">
+        Title="Font Packager v1.4" Height="600" Width="680" MinHeight="400" MinWidth="600" Background="LightGray" UseLayoutRounding="True">
 	<Grid>
 		<Grid.RowDefinitions>
-			<RowDefinition Height="32"/>
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="100"/>
 		</Grid.RowDefinitions>
-		<Grid Margin="4">
+		<Grid Height="22" VerticalAlignment="Top" Margin="4,4,0,0">
 			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="52" />
-				<ColumnDefinition Width="*" />
-				<ColumnDefinition Width="50" />
-				<ColumnDefinition Width="88" />
+				<ColumnDefinition Width="32" />
+				<ColumnDefinition Width="*"/>
 			</Grid.ColumnDefinitions>
-			<TextBlock Text="Package:" VerticalAlignment="Center" Grid.Column="0"/>
-			<TextBox x:Name="inputpkgpath" IsReadOnly="True" Height="22" Grid.Column="1"/>
-			<Button x:Name="btnOpenPkg" Content="Open..." Click="btnOpenPkg_Click" Height="22" Grid.Column="2" Margin="4,0,0,0"/>
-			<Button x:Name="btnSavepkg" Content="Save Changes" Click="btnSavepkg_Click" Height="22" IsEnabled="False" Grid.Column="3" Margin="4,0,0,0"/>
+			<Menu Grid.Column="0" Height="22">
+				<MenuItem Header="File" >
+					<MenuItem Header="Open File..." Click="btnOpenPkg_Click" ToolTip="Open a font_package, H2 list, or single H2 font."/>
+					<MenuItem Header="Open Folder... (H2)" Click="btnOpenFold_Click" ToolTip="Open an entire H2 fonts folder. (May be slow)"/>
+					<Separator />
+					<MenuItem x:Name="btnSavepkg" Header="Save Changes" IsEnabled="False" Click="btnSavepkg_Click" ToolTip="Save package/All loaded fonts"/>
+					<MenuItem x:Name="btnSavefile" Header="Save Current (H2)" IsEnabled="False" Click="btnSavefile_Click" ToolTip="Save only the currently selected font."/>
+				</MenuItem>
+			</Menu>
+			<TextBlock x:Name="inputpkgpath" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="4,0,112,0"/>
 		</Grid>
-		<TabControl x:Name="tabz" VerticalAlignment="Stretch" Grid.Row="1" Margin="4,4,4,0">
+		<TabControl x:Name="tabz" VerticalAlignment="Stretch" Grid.Row="0" Margin="4,4,4,0">
+			<TabControl.Resources>
+				<Style TargetType="TabPanel">
+					<Setter Property="HorizontalAlignment" Value="Right" />
+				</Style>
+			</TabControl.Resources>
 			<TabItem Header="Fonts">
 				<Grid>
 					<Grid.RowDefinitions>
@@ -51,7 +59,7 @@
 						<TextBlock Text="Line Bottom Pad:" VerticalAlignment="Center" Margin="8,0,0,0"/>
 						<TextBox x:Name="fontBPad" Width="30" MaxLength="2" Height="22" Margin="4,0,0,0"/>
 						<TextBlock Text="Line Indent:" VerticalAlignment="Center" Margin="8,0,0,0"/>
-						<TextBox x:Name="fontUnk" Width="30" MaxLength="2" Height="22" Margin="4,0,0,0"/>
+						<TextBox x:Name="fontLI" Width="30" MaxLength="2" Height="22" Margin="4,0,0,0"/>
 						<Button x:Name="btnFontUpdate" Height="22" Content="Update" Click="btnFontUpdate_Click" IsEnabled="False" Margin="4,0,0,0"/>
 					</StackPanel>
 					
@@ -114,21 +122,39 @@
 								<StackPanel Orientation="Horizontal">
 									<Button x:Name="btnABC" Height="22" Content="Import .abc File" Click="btnABC_Click" IsEnabled="False" ToolTip="Imports characters from the SDK tool FontMaker. (TGA must be converted to PNG first)"/>
 									<Button x:Name="btnHFix" Content="Update Line Heights" Click="btnHFix_Click" Margin="4,0,0,0" IsEnabled="False" ToolTip="Updates the display height of every character to match the font's line height."/>
+									
+									<TextBlock Text="Range Start Char: 0x" VerticalAlignment="Center" Margin="4,0,0,0" />
+									<TextBox x:Name="HOstart" Width="50" MaxLength="4" Height="22" Margin="2,0,0,0"/>
+									<TextBlock Text="End Char: 0x" VerticalAlignment="Center" Margin="4,0,0,0" />
+									<TextBox x:Name="HOend" Width="50" MaxLength="4" Height="22" Margin="2,0,0,0"/>
 								</StackPanel>
 								<StackPanel Orientation="Horizontal">
-									<GroupBox Header="Copy Characters From Other Package" Margin="0,4,0,0" Padding="4">
+									<GroupBox Header="Copy Range From Other Package" Margin="0,4,0,0" Padding="4">
 										<StackPanel>
 											<StackPanel Orientation="Horizontal" >
-												<TextBlock Text="Start Character: 0x" VerticalAlignment="Center"/>
-												<TextBox x:Name="HOstart" Width="50" MaxLength="4" Height="22" Margin="2,0,0,0"/>
-												<TextBlock Text="End Character: 0x" VerticalAlignment="Center" Margin="4,0,0,0"/>
-												<TextBox x:Name="HOend" Width="50" MaxLength="4" Height="22" Margin="2,0,0,0"/>
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
 												<TextBlock Text="Font Index:" VerticalAlignment="Center"/>
 												<TextBox x:Name="HOfont" Width="30" MaxLength="2" Height="22" Margin="10,0,0,0"/>
-												<CheckBox x:Name="HOinfo" Content="Copy Header" Grid.Column="2" VerticalAlignment="Center" Margin="4,0,0,0"/>
-												<Button x:Name="HObtn" Height="22" Width="104" Content="Open Package" Click="HOCopy" IsEnabled="False" Margin="8,0,0,0"/>
+												<CheckBox x:Name="HOinfo" Content="Copy Header" Grid.Column="2" VerticalAlignment="Center" Margin="4,0,0,0" ToolTip="Copies the font head values along with the characters."/>
+											</StackPanel>
+											<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+												<Button x:Name="HObtn" Height="22" Width="196" Content="Open..." Click="HOCopy" IsEnabled="False"/>
+											</StackPanel>
+										</StackPanel>
+									</GroupBox>
+									<GroupBox Header="Import Range From PC Font" Margin="0,4,0,0" Padding="4">
+										<StackPanel>
+											<StackPanel Orientation="Horizontal" >
+												<Button x:Name="pcgetfonts" Content="Get" Height="22" Click="pcgetfonts_Click"/>
+												<ComboBox x:Name="pcfontlist" Width="227" Margin="4,0,0,0"/>
+												
+											</StackPanel>
+											<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+												<TextBlock Text="Size:" VerticalAlignment="Center"/>
+												<TextBox x:Name="pcsize" Width="30" MaxLength="3" Height="22" Margin="6,0,0,0"/>
+												<ToggleButton x:Name="pcbold" Content="B" Width="16" FontWeight="Bold" Margin="4,0,0,0" />
+												<TextBlock Text="V Offset:" VerticalAlignment="Center" Margin="4,0,0,0" ToolTip="Adjusts the vertical offset of the added characters to help line things up ingame. Test with a small range to get a good value. Decimal points are allowed."/>
+												<TextBox x:Name="pcoffset" Text="-2" Width="50" Height="22" Margin="4,0,0,0"/>
+												<Button x:Name="pcimport" Height="22" Width="69" Content="Import" Click="pcimport_Click" IsEnabled="False" Margin="4,0,0,0"/>
 											</StackPanel>
 										</StackPanel>
 									</GroupBox>
@@ -158,7 +184,7 @@
 				</StackPanel>
 			</TabItem>
 		</TabControl>
-		<TextBox x:Name="logbox" IsReadOnly="True" Grid.Row="2" Margin="4" VerticalScrollBarVisibility="Visible"/>
+		<TextBox x:Name="logbox" IsReadOnly="True" Grid.Row="1" Margin="4" VerticalScrollBarVisibility="Visible"/>
 	</Grid>
 </Window>
 
