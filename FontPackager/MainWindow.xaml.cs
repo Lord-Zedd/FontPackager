@@ -103,6 +103,7 @@ namespace FontPackager
 						return;
 				}
 			}
+			else return;
 
 			inputpkgpath.Text = fbd.SelectedPath;
 
@@ -160,11 +161,18 @@ namespace FontPackager
 			btnAddBat.IsEnabled = true;
 			btndeleteBat.IsEnabled = true;
 
+			
+
+
 			bool bigfont = false;
+
+			orderlistfonts.Items.Add("null");
 
 			for (int i = 0; i < package.Fonts.Count; i++)
 			{
 				fontslist.Items.Add(i.ToString() + ": " + package.Fonts[i].Name + "  [" + package.Fonts[i].CharacterCount + "]");
+
+				orderlistfonts.Items.Add(package.Fonts[i].Name);
 
 				if (package.Fonts[i].CharacterCount > 5000)
 					bigfont = true;
@@ -174,6 +182,25 @@ namespace FontPackager
 
 			if (bigfont)
 				WriteLog("NOTE: Package contains one or more fonts with over 5000 characters, performance may suffer.");
+
+			orderlistfonts.SelectedIndex = 0;
+
+			if (inputpkgpath.Text.EndsWith(".bin"))
+			{
+				orderlist.IsEnabled = true;
+				btnOrder.IsEnabled = true;
+				orderlistfonts.IsEnabled = true;
+				txtOrderDesc.Visibility = Visibility.Visible;
+				txtOrderHTwo.Visibility = Visibility.Collapsed;
+				UpdateOrderDisplay();
+			}
+			else
+			{
+				txtOrderDesc.Visibility = Visibility.Collapsed;
+				txtOrderHTwo.Visibility = Visibility.Visible;
+			}
+
+				
 		}
 
 		public void UpdateFontDisplay()
@@ -210,16 +237,14 @@ namespace FontPackager
 						utf8Code += " " + utf8[u].ToString("X2");
 				}
 
-				fontChar.ToolTip = "Unicode: " + unicode.ToString("X4") +
+				fontChar.ToolTip = "Unicode: " + unicode.ToString("X4") + " [" + unicode.ToString() + "]" +
 					"\r\nUTF8: " + utf8Code +
 					"\r\nDouble click to copy as a unicode character to the clipboard." +
 					"\r\n\r\nWidth: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.width +
 					"\r\nDisplay Width: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispWidth +
 					"\r\nHeight: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height +
 					"\r\nDisplay Height: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispHeight +
-					"\r\nLeft Pad: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.leftpad +
-					"\r\n" + package.Fonts[fontslist.SelectedIndex].Characters[i].isdupe +
-					"\r\n" + lstChars.Items.Count;
+					"\r\nLeft Pad: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.leftpad;
 				fontChar.Height = package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height;
 				fontChar.Padding = new Thickness(0);
 				fontChar.VerticalAlignment = System.Windows.VerticalAlignment.Center;
@@ -235,6 +260,18 @@ namespace FontPackager
 			fontBPad.Text = package.Fonts[fontslist.SelectedIndex].LineBottomPad.ToString();
 			fontLI.Text = package.Fonts[fontslist.SelectedIndex].LineIndent.ToString();
 		}
+
+		public void UpdateOrderDisplay()
+		{
+			orderlist.Items.Clear();
+
+			for (int i = 0; i < package.OrderList.Count; i++)
+			{
+				var oi = new OrderItem() { OrderIndex = i, OrderValue = package.OrderList[i], Name = orderlistfonts.Items[package.OrderList[i] + 1].ToString() };
+				orderlist.Items.Add(oi);
+			}
+		}
+
 
 		private string OpenImage()
 		{
@@ -386,7 +423,7 @@ namespace FontPackager
 
 				UInt16 char2replace = CharFromSelectedItem();
 
-				package.AddCustomCharacter(char2replace, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex);
+				package.AddCustomCharacter(char2replace, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex, (bool)chkCrop.IsChecked);
 
 				newpic.Dispose();
 
@@ -456,7 +493,7 @@ namespace FontPackager
 			if (path != null)
 			{
 				System.Drawing.Image newpic = System.Drawing.Image.FromFile(path);
-				package.AddCustomCharacter(char2add, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex);
+				package.AddCustomCharacter(char2add, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex, (bool)chkCrop.IsChecked);
 
 				newpic.Dispose();
 				UpdateFontDisplay();
@@ -621,7 +658,7 @@ namespace FontPackager
 					}
 						
 
-					package.AddCustomCharacter(abc.CharCodes[i], fontslist.SelectedIndex, System.Drawing.Image.FromStream(ms), CharTint.None, dispwidth);
+					package.AddCustomCharacter(abc.CharCodes[i], fontslist.SelectedIndex, System.Drawing.Image.FromStream(ms), CharTint.None, true, dispwidth);
 
 					ms.Close();
 					bm.Dispose();
@@ -814,7 +851,7 @@ namespace FontPackager
 					System.Drawing.Image newpic = BitmapFromFont(importfont, charoffset, ((char)i).ToString());
 					if (newpic == null) continue;
 					if (newpic.Width == 1) continue;
-					package.AddCustomCharacter((ushort)i, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex);
+					package.AddCustomCharacter((ushort)i, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex, true);
 
 					newpic.Dispose();
 				}
@@ -826,6 +863,17 @@ namespace FontPackager
 		#endregion
 
 		#region batch tab controls
+
+		private void btnOrder_Click(object sender, RoutedEventArgs e)
+		{
+			foreach (OrderItem item in orderlist.SelectedItems)
+			{
+				package.OrderList[item.OrderIndex] = orderlistfonts.SelectedIndex - 1;
+			}
+
+			UpdateOrderDisplay();
+		}
+
 		private void btnAddBat_Click(object sender, RoutedEventArgs e)
 		{
 			UInt16 char2add = ParseChar("Batch add", newCharBat.Text);
@@ -838,7 +886,7 @@ namespace FontPackager
 				System.Drawing.Image newpic = System.Drawing.Image.FromFile(path);
 
 				for (int i = 0; i < package.Fonts.Count; i++)
-					package.AddCustomCharacter(char2add, i, newpic, (CharTint)tintEnum.SelectedIndex);
+					package.AddCustomCharacter(char2add, i, newpic, (CharTint)tintEnum.SelectedIndex, (bool)chkCrop.IsChecked);
 
 				newpic.Dispose();
 				UpdateFontDisplay();
@@ -959,6 +1007,12 @@ namespace FontPackager
 
 		#endregion
 
+		public class OrderItem
+		{
+			public int OrderIndex { get; set; }
+			public int OrderValue { get; set; }
+			public string Name { get; set; }
+		}
 	}
 }
 

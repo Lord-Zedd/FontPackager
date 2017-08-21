@@ -299,6 +299,8 @@ namespace FontPackager
 
 			BlockRange blockk = new BlockRange();
 
+
+
 			for (int i = 0; i < Fonts.Count; i++)
 			{
 				FontHeaderInfo fontt = new FontHeaderInfo();
@@ -452,6 +454,12 @@ namespace FontPackager
 			FileStream fs = new FileStream(inputpkg, FileMode.Open, FileAccess.Write);
 			BinaryWriter bw = new BinaryWriter(fs);
 
+			//update ordering
+			bw.BaseStream.Position = 8 + (maxFontCount * 0xC);
+
+			for (int i = 0; i < OrderList.Count; i++)
+				bw.Write(OrderList[i]);
+
 			//update the block info for each font
 			bw.BaseStream.Position = 0x8;
 
@@ -597,11 +605,12 @@ namespace FontPackager
 		/// <param name="fontindex"></param>
 		/// <param name="image"></param>
 		/// <returns></returns>
-		public void AddCustomCharacter(UInt16 charcode, int fontindex, Image image, CharTint tint, int dwidth = -1)
+		public void AddCustomCharacter(UInt16 charcode, int fontindex, Image image, CharTint tint, bool cropme, int dwidth = -1)
 		{
 			int origwidth = image.Width;
 
-			image = CropWidth((Bitmap)image);
+			if (cropme)
+				image = CropWidth((Bitmap)image);
 
 			Bitmap bm = (Bitmap)image;
 			BitmapData bd = bm.LockBits(
@@ -664,41 +673,13 @@ namespace FontPackager
 				switch (tint)
 				{
 					case CharTint.Cool:
-						if ((pixel & 0xFFF) == 0x000) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x001);
-						else if ((pixel & 0xFFF) == 0x111) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x011);
-						else if ((pixel & 0xFFF) == 0x222) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x122);
-						else if ((pixel & 0xFFF) == 0x333) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x233);
-						else if ((pixel & 0xFFF) == 0x444) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x344);
-						else if ((pixel & 0xFFF) == 0x555) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x455);
-						else if ((pixel & 0xFFF) == 0x666) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x566);
-						else if ((pixel & 0xFFF) == 0x777) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x677);
-						else if ((pixel & 0xFFF) == 0x888) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x788);
-						else if ((pixel & 0xFFF) == 0x999) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x899);
-						else if ((pixel & 0xFFF) == 0xAAA) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x9AA);
-						else if ((pixel & 0xFFF) == 0xBBB) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xABB);
-						else if ((pixel & 0xFFF) == 0xCCC) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xBCC);
-						else if ((pixel & 0xFFF) == 0xDDD) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xCDD);
-						else if ((pixel & 0xFFF) == 0xEEE) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xDEE);
-						else if ((pixel & 0xFFF) == 0xFFF) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xEFF);
+						if ((pixel & 0xFFF) == 0x000) pixel += 1;
+						else if (((pixel & 0xFFF) % 0x111) == 0) pixel -= 0x100;
 						break;
 
 					case CharTint.Warm:
-						if ((pixel & 0xFFF) == 0x000) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x100);
-						else if ((pixel & 0xFFF) == 0x111) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x110);
-						else if ((pixel & 0xFFF) == 0x222) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x221);
-						else if ((pixel & 0xFFF) == 0x333) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x332);
-						else if ((pixel & 0xFFF) == 0x444) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x443);
-						else if ((pixel & 0xFFF) == 0x555) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x554);
-						else if ((pixel & 0xFFF) == 0x666) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x665);
-						else if ((pixel & 0xFFF) == 0x777) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x776);
-						else if ((pixel & 0xFFF) == 0x888) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x887);
-						else if ((pixel & 0xFFF) == 0x999) pixel = (ushort)(((alpha & 0xF0) << 8) | 0x998);
-						else if ((pixel & 0xFFF) == 0xAAA) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xAA9);
-						else if ((pixel & 0xFFF) == 0xBBB) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xBBA);
-						else if ((pixel & 0xFFF) == 0xCCC) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xCCB);
-						else if ((pixel & 0xFFF) == 0xDDD) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xDDC);
-						else if ((pixel & 0xFFF) == 0xEEE) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xEED);
-						else if ((pixel & 0xFFF) == 0xFFF) pixel = (ushort)(((alpha & 0xF0) << 8) | 0xFFE);
+						if ((pixel & 0xFFF) == 0x000) pixel += 0x100;
+						else if (((pixel & 0xFFF) % 0x111) == 0) pixel -= 1;
 						break;
 				}
 
@@ -718,31 +699,18 @@ namespace FontPackager
 					bool dontChange = false;
 
 					//grab the next pixel, or prevent writing
-					try
-					{
-						nextpixel = pixelList[i + 1];
-					}
-					catch
-					{
+					if (i + 1 >= pixelList.Count)
 						dontChange = true;
-					}
+					else
+						nextpixel = pixelList[i + 1];
 
 					//get the alpha for the first pixel
 					var alpha = (pixel & 0xF000) >> 12;
 
 					//extra checking to see if we are updating the base
-					if ((pixel & 0xFFF) == (basePixel & 0xFFF))
-					{
-						if ((alpha == 0 ||
-							alpha == 3 ||
-							alpha == 4 ||
-							alpha == 7 ||
-							alpha == 8 ||
-							alpha == 0xB ||
-							alpha == 0xC ||
-							alpha == 0xF) && ((pixel & 0xFFF) == (nextpixel & 0xFFF)))
-							dontChange = true;
-					}
+					if ((pixel & 0xFFF) == (basePixel & 0xFFF)
+						&& (pixel & 0xFFF) == (nextpixel & 0xFFF))
+						dontChange = true;
 
 					//do we write base change bytes
 					if ((pixel != basePixel) && ((pixel & 0xFFF) != (basePixel & 0xFFF)) ||
@@ -756,65 +724,34 @@ namespace FontPackager
 						continue;
 					}
 
-					//do we write 0 alpha run
-					if ((pixel & 0xF000) == 0)
-					{
-						while ((i + run) < pixelList.Count && (pixelList[i + run] & 0xF000) == 0 && run < 0x3F)
-							run++;
-
-						if (run > 1)
-						{
-							data.Add(run);
-							i += run - 1;
-							continue;
-						}
-					}
-
-					//do we write F alpha run
-					if ((pixel & 0xF000) == 0xF000)
+					//check for easy long-run 0/F alpha pixels
+					if (alpha == 0 || alpha == 0xF)
 					{
 						while ((i + run) < pixelList.Count && pixelList[i + run] == pixel && run < 0x3F)
 							run++;
 
 						if (run > 1)
 						{
-							data.Add((byte)((1 << 6) | run));
+							data.Add((byte)(((alpha & 4) << 4) | run));
 							i += run - 1;
 							continue;
 						}
 					}
 
-					//guess we write run of varying alphas
+					//if the alpha wasn't 0/f or only lasts 1 pixel, gotta do all this
 					run = 0;
 					byte codeL = 0;
 
-					alpha = FixAlpha(alpha);
-
-					if (alpha == 0)
-						codeL = 0x80;
-					else if (alpha == 3)
-						codeL = 0x88;
-					else if (alpha == 4)
-						codeL = 0x90;
-					else if (alpha == 7)
-						codeL = 0x98;
-					else if (alpha == 8)
-						codeL = 0xA0;
-					else if (alpha == 0xB)
-						codeL = 0xA8;
-					else if (alpha == 0xC)
-						codeL = 0xB0;
-					else if (alpha == 0xF)
-						codeL = 0xB8;
+					codeL = (byte)(alpha & 0xE);
+					codeL <<= 2;
+					codeL |= 0x80;
 
 					byte codeR = 0;
 
 					//get alpha for the next pixel
 					alpha = (nextpixel & 0xF000) >> 12;
 
-					alpha = FixAlpha(alpha);
-
-					//find run and limit if alpha is unsupported for a longer one
+					//find run and limit if alpha is unsupported for a longer run
 					while ((i + 1 + run) < pixelList.Count && (pixelList[i + 1 + run]) == (nextpixel) && run < 5)
 						run++;
 
@@ -829,28 +766,13 @@ namespace FontPackager
 					}
 					else if (run == 1)
 					{
-						if (alpha == 0)
-							codeR = 0;
-						else if (alpha == 3)
-							codeR = 1;
-						else if (alpha == 4)
-							codeR = 2;
-						else if (alpha == 7)
-							codeR = 3;
-						else if (alpha == 8)
-							codeR = 4;
-						else if (alpha == 0xB)
-							codeR = 5;
-						else if (alpha == 0xC)
-							codeR = 6;
-						else if (alpha == 0xF)
-							codeR = 7;
+						codeR = (byte)(alpha >> 1);
 
 						data.Add((byte)((codeL | codeR) | 0xC0));
 						i += run;
 						continue;
 					}
-					else if (run == 2)
+					else if (run == 2) //these may still have a trick instead of using hardcoded codeRs but idk
 						codeR = (alpha == 0xF) ? (byte)3 : (byte)7;
 					else if (run == 3)
 						codeR = (alpha == 0xF) ? (byte)2 : (byte)6;
@@ -869,6 +791,7 @@ namespace FontPackager
 
 					data.Add((byte)(codeL | codeR));
 					i += run;
+
 				}
 			else
 				data.Add(0x15);
@@ -973,23 +896,12 @@ namespace FontPackager
 
 		internal int FixAlpha(int alpha)
 		{
-			//correct alpha, dunno if proper but prevents "holes" in the final image
-			if (alpha == 0xE)
-				alpha = 0xF;
-			if (alpha == 0xD)
-				alpha = 0xC;
-			if (alpha == 0xA)
-				alpha = 0xB;
-			if (alpha == 0x9)
-				alpha = 0x8;
-			if (alpha == 0x6)
-				alpha = 0x7;
-			if (alpha == 0x5)
-				alpha = 0x4;
-			if (alpha == 0x2)
-				alpha = 0x3;
-			if (alpha == 0x1)
-				alpha = 0x0;
+			//not needed anymore with bitwise updates
+
+			if ((alpha & 3) == 1)
+				alpha &= 0xE;
+			else if ((alpha & 3) == 2)
+				alpha |= 3;
 
 			return alpha;
 		}
