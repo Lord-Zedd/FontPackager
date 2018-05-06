@@ -165,7 +165,7 @@ namespace FontPackager
 
 
 			bool bigfont = false;
-
+			orderlistfonts.Items.Clear();
 			orderlistfonts.Items.Add("null");
 
 			for (int i = 0; i < package.Fonts.Count; i++)
@@ -334,7 +334,7 @@ namespace FontPackager
 
 			try
 			{
-				output = short.Parse(fontHeight.Text);
+				output = short.Parse(input);
 			}
 			catch
 			{
