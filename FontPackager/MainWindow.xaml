@@ -45,21 +45,21 @@
 						<Grid.ColumnDefinitions>
 							<ColumnDefinition Width="32" />
 							<ColumnDefinition Width="*" />
-							<ColumnDefinition Width="70" />
+							<ColumnDefinition Width="74" />
 						</Grid.ColumnDefinitions>
 						<TextBlock Text="Font:" VerticalAlignment="Center" Grid.Column="0" />
 						<ComboBox x:Name="fontslist" SelectionChanged="fontslist_SelectionChanged" Height="22" Grid.Column="1"/>
 						<CheckBox x:Name="cbInvertBG" Content="Invert BG" Grid.Column="2" VerticalAlignment="Center" Checked="cbInvertBG_Checked" Unchecked="cbInvertBG_Unchecked" Margin="4,0,0,0"/>
 					</Grid>
 					<StackPanel Orientation="Horizontal" Grid.Row="1">
-						<TextBlock Text="Line Height:" VerticalAlignment="Center" Margin="8,0,0,0"/>
-						<TextBox x:Name="fontHeight" Width="30" MaxLength="2" Height="22" Margin="4,0,0,0"/>
-						<TextBlock Text="Line Top Pad:" VerticalAlignment="Center" Margin="8,0,0,0"/>
-						<TextBox x:Name="fontTPad" Width="30" MaxLength="2" Height="22" Margin="4,0,0,0"/>
-						<TextBlock Text="Line Bottom Pad:" VerticalAlignment="Center" Margin="8,0,0,0"/>
-						<TextBox x:Name="fontBPad" Width="30" MaxLength="2" Height="22" Margin="4,0,0,0"/>
-						<TextBlock Text="Line Indent:" VerticalAlignment="Center" Margin="8,0,0,0"/>
-						<TextBox x:Name="fontLI" Width="30" MaxLength="2" Height="22" Margin="4,0,0,0"/>
+						<TextBlock Text="Ascend Height:" VerticalAlignment="Center" Margin="4,0,0,0"/>
+						<TextBox x:Name="fontAHeight" Width="46" MaxLength="2" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
+						<TextBlock Text="Descend Height:" VerticalAlignment="Center" Margin="4,0,0,0"/>
+						<TextBox x:Name="fontDHeight" Width="46" MaxLength="2" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
+						<TextBlock Text="Lead Height:" VerticalAlignment="Center" Margin="4,0,0,0"/>
+						<TextBox x:Name="fontLHeight" Width="46" MaxLength="2" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
+						<TextBlock Text="Lead Width:" VerticalAlignment="Center" Margin="4,0,0,0"/>
+						<TextBox x:Name="fontLWidth" Width="46" MaxLength="2" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
 						<Button x:Name="btnFontUpdate" Height="22" Content="Update" Click="btnFontUpdate_Click" IsEnabled="False" Margin="4,0,0,0"/>
 					</StackPanel>
 					
@@ -88,7 +88,7 @@
 										<StackPanel>
 											<StackPanel Orientation="Horizontal">
 												<TextBlock Text="Unicode: 0x" VerticalAlignment="Center"/>
-												<TextBox x:Name="newChar" Width="50" MaxLength="4" Height="22" Margin="2,0,0,0"/>
+												<TextBox x:Name="newChar" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
 											</StackPanel>
 											<Button x:Name="btnAdd" Content="Add Character..." Height="22" Click="btnAdd_Click" IsEnabled="False" Margin="0,4,0,0"/>
 										</StackPanel>
@@ -96,14 +96,16 @@
 									<GroupBox Header="Selected Character" Margin="4,0,0,0" Padding="4">
 										<StackPanel>
 											<StackPanel Orientation="Horizontal">
-												<TextBlock Text="Display Width:" VerticalAlignment="Center"/>
-												<TextBox x:Name="charWidth" Width="50" MaxLength="4" Height="22" Margin="4,0,0,0"/>
-												<TextBlock Text="Display Height:" VerticalAlignment="Center" Margin="4,0,0,0"/>
-												<TextBox x:Name="charHeight" Width="50" MaxLength="4" Height="22" Margin="4,0,0,0"/>
+												<TextBlock Text="Origin x:" VerticalAlignment="Center" ToolTip="Horizontal offset." />
+												<TextBox x:Name="charOriginX" Width="50" MaxLength="5" Height="22" Margin="9,0,0,0" VerticalContentAlignment="Center" />
+
+												<TextBlock Text="Display Width:" VerticalAlignment="Center" Margin="6,0,0,0" ToolTip="How wide the engine treats this character when drawing text. Less than the actual image will cause overlap."/>
+												<TextBox x:Name="charWidth" Width="50" MaxLength="5" Height="22" Margin="6,0,0,0" VerticalContentAlignment="Center" />
+												
 											</StackPanel>
 											<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-												<TextBlock Text="Left Pad:" VerticalAlignment="Center"/>
-												<TextBox x:Name="charLPad" Width="50" MaxLength="4" Height="22" Margin="34,0,0,0"/>
+												<TextBlock Text="Origin y:" VerticalAlignment="Center" ToolTip="Vertical offset."/>
+												<TextBox x:Name="charOriginY" Width="50" MaxLength="5" Height="22" VerticalContentAlignment="Center" Margin="8,0,0,0" />
 												<Button x:Name="btnCharUpdate" Content="Update" Height="22" Width="134" Click="btnCharUpdate_Click" IsEnabled="False" Margin="4,0,0,0"/>
 											</StackPanel>
 										</StackPanel>
@@ -135,19 +137,19 @@
 							<StackPanel Margin="4">
 								<StackPanel Orientation="Horizontal">
 									<Button x:Name="btnABC" Height="22" Content="Import .abc File" Click="btnABC_Click" IsEnabled="False" ToolTip="Imports characters from the SDK tool FontMaker. (TGA must be converted to PNG first)"/>
-									<Button x:Name="btnHFix" Content="Update Line Heights" Click="btnHFix_Click" Margin="4,0,0,0" IsEnabled="False" ToolTip="Updates the display height of every character to match the font's line height."/>
+									<Button x:Name="btnHFix" Content="Update Line Heights" Click="btnHFix_Click" Margin="4,0,0,0" IsEnabled="False" ToolTip="Updates the y origin of every character to match the font's ascend height."/>
 									
 									<TextBlock Text="Range Start Char: 0x" VerticalAlignment="Center" Margin="4,0,0,0" />
-									<TextBox x:Name="HOstart" Width="50" MaxLength="4" Height="22" Margin="2,0,0,0"/>
+									<TextBox x:Name="HOstart" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
 									<TextBlock Text="End Char: 0x" VerticalAlignment="Center" Margin="4,0,0,0" />
-									<TextBox x:Name="HOend" Width="50" MaxLength="4" Height="22" Margin="2,0,0,0"/>
+									<TextBox x:Name="HOend" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
 								</StackPanel>
 								<StackPanel Orientation="Horizontal">
 									<GroupBox Header="Copy Range From Other Package" Margin="0,4,0,0" Padding="4">
 										<StackPanel>
 											<StackPanel Orientation="Horizontal" >
 												<TextBlock Text="Font Index:" VerticalAlignment="Center"/>
-												<TextBox x:Name="HOfont" Width="30" MaxLength="2" Height="22" Margin="10,0,0,0"/>
+												<TextBox x:Name="HOfont" Width="30" MaxLength="2" Height="22" VerticalContentAlignment="Center"  Margin="10,0,0,0"/>
 												<CheckBox x:Name="HOinfo" Content="Copy Header" Grid.Column="2" VerticalAlignment="Center" Margin="4,0,0,0" ToolTip="Copies the font head values along with the characters."/>
 											</StackPanel>
 											<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
@@ -164,10 +166,10 @@
 											</StackPanel>
 											<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
 												<TextBlock Text="Size:" VerticalAlignment="Center"/>
-												<TextBox x:Name="pcsize" Width="30" MaxLength="3" Height="22" Margin="6,0,0,0"/>
+												<TextBox x:Name="pcsize" Width="30" MaxLength="3" Height="22" VerticalContentAlignment="Center" Margin="6,0,0,0"/>
 												<ToggleButton x:Name="pcbold" Content="B" Width="16" FontWeight="Bold" Margin="4,0,0,0" />
 												<TextBlock Text="V Offset:" VerticalAlignment="Center" Margin="4,0,0,0" ToolTip="Adjusts the vertical offset of the added characters to help line things up ingame. Test with a small range to get a good value. Decimal points are allowed."/>
-												<TextBox x:Name="pcoffset" Text="-2" Width="50" Height="22" Margin="4,0,0,0"/>
+												<TextBox x:Name="pcoffset" Text="-2" Width="50" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
 												<Button x:Name="pcimport" Height="22" Width="69" Content="Import" Click="pcimport_Click" IsEnabled="False" Margin="4,0,0,0"/>
 											</StackPanel>
 										</StackPanel>
@@ -215,7 +217,7 @@
 					<GroupBox Header="Add/Replace Character To All Fonts"  Padding="4">
 						<StackPanel Orientation="Horizontal">
 							<TextBlock Text="Unicode: 0x" VerticalAlignment="Center"/>
-							<TextBox x:Name="newCharBat" Width="50" MaxLength="4" Height="22" Margin="2,0,0,0"/>
+							<TextBox x:Name="newCharBat" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
 							<Button x:Name="btnAddBat" Content="Add Character..." Height="22" Width="100" Click="btnAddBat_Click" IsEnabled="False" Margin="4,0,0,0"/>
 							<TextBlock Text="(Tint/Crop from the Fonts tab also applies.)" VerticalAlignment="Center" Margin="4,0,0,0"/>
 						</StackPanel>
@@ -223,7 +225,7 @@
 					<GroupBox Header="Remove Character From All Fonts" Margin="0,4,0,0" Padding="4">
 						<StackPanel Orientation="Horizontal">
 							<TextBlock Text="Unicode: 0x" VerticalAlignment="Center"/>
-							<TextBox x:Name="deleteBat" Width="50" MaxLength="4" Height="22" Margin="2,0,0,0"/>
+							<TextBox x:Name="deleteBat" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
 							<Button x:Name="btndeleteBat" Content="Delete Character" Height="22" Width="100" Click="btndeleteBat_Click" IsEnabled="False" Margin="4,0,0,0"/>
 						</StackPanel>
 					</GroupBox>

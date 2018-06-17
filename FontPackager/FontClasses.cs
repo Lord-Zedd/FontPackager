@@ -384,8 +384,8 @@ namespace FontPackager
 					dw.Write(Fonts[i].Characters[j].Data.dataSize);
 					dw.Write(Fonts[i].Characters[j].Data.width);
 					dw.Write(Fonts[i].Characters[j].Data.height);
-					dw.Write(Fonts[i].Characters[j].Data.leftpad);
-					dw.Write(Fonts[i].Characters[j].Data.dispHeight);
+					dw.Write(Fonts[i].Characters[j].Data.originx);
+					dw.Write(Fonts[i].Characters[j].Data.originy);
 					dw.Write(Fonts[i].Characters[j].Data.compressedData);
 
 					//calculate character padding
@@ -496,10 +496,10 @@ namespace FontPackager
 			{
 				bw.BaseStream.Position = FontEntries[i].offset + 0x24;
 
-				bw.Write(Fonts[i].LineHeight);
-				bw.Write(Fonts[i].LineTopPad);
-				bw.Write(Fonts[i].LineBottomPad);
-				bw.Write(Fonts[i].LineIndent);
+				bw.Write(Fonts[i].AscendHeight);
+				bw.Write(Fonts[i].DescendHeight);
+				bw.Write(Fonts[i].LeadHeight);
+				bw.Write(Fonts[i].LeadWidth);
 
 				var datasize = 0;
 				for (int j = 0; j < Fonts[i].Characters.Count; j++)
@@ -558,8 +558,8 @@ namespace FontPackager
 					ct.Write(charr.Data.dataSize);
 					ct.Write(charr.Data.width);
 					ct.Write(charr.Data.height);
-					ct.Write(charr.Data.leftpad);
-					ct.Write(charr.Data.dispHeight);
+					ct.Write(charr.Data.originx);
+					ct.Write(charr.Data.originy);
 					ct.Write(dataoffset);
 
 					cd.Write(charr.Data.compressedData);
@@ -576,10 +576,10 @@ namespace FontPackager
 			}
 
 			bw.BaseStream.Position = 0x204;
-			bw.Write(Fonts[fontindex].LineHeight);
-			bw.Write(Fonts[fontindex].LineTopPad);
-			bw.Write(Fonts[fontindex].LineBottomPad);
-			bw.Write(Fonts[fontindex].LineIndent);
+			bw.Write(Fonts[fontindex].AscendHeight);
+			bw.Write(Fonts[fontindex].DescendHeight);
+			bw.Write(Fonts[fontindex].LeadHeight);
+			bw.Write(Fonts[fontindex].LeadWidth);
 			bw.Write(writtenchars.Count);
 			bw.BaseStream.Position += 0x8;
 			bw.Write((int)chardata.Length);
@@ -807,13 +807,13 @@ namespace FontPackager
 
 			if (existingindex != -1)
 			{
-				ci.leftpad = Fonts[fontindex].Characters[existingindex].Data.leftpad;
-				ci.dispHeight = Fonts[fontindex].Characters[existingindex].Data.dispHeight;
+				ci.originx = Fonts[fontindex].Characters[existingindex].Data.originx;
+				ci.originy = Fonts[fontindex].Characters[existingindex].Data.originy;
 			}
 			else
 			{
-				ci.leftpad = 0;
-				ci.dispHeight = (ushort)Fonts[fontindex].LineHeight;
+				ci.originx = 0;
+				ci.originy = (ushort)Fonts[fontindex].AscendHeight;
 			}
 
 			ci.width = (UInt16)image.Width;
@@ -950,10 +950,10 @@ namespace FontPackager
 
 		public string Name { get; set; }
 
-		public Int16 LineHeight { get; set; }
-		public Int16 LineTopPad { get; set; }
-		public Int16 LineBottomPad { get; set; }
-		public Int16 LineIndent { get; set; }
+		public Int16 AscendHeight { get; set; }
+		public Int16 DescendHeight { get; set; }
+		public Int16 LeadHeight { get; set; }
+		public Int16 LeadWidth { get; set; }
 
 		private int KerningPairIndexOffset { get; set; }
 		private int KerningPairCount { get; set; }
@@ -979,10 +979,10 @@ namespace FontPackager
 			byte[] _name = br.ReadBytes(32);
 			Name = (System.Text.Encoding.ASCII.GetString(_name).TrimEnd((Char)0));
 
-			LineHeight = br.ReadInt16();
-			LineTopPad = br.ReadInt16();
-			LineBottomPad = br.ReadInt16();
-			LineIndent = br.ReadInt16();
+			AscendHeight = br.ReadInt16();
+			DescendHeight = br.ReadInt16();
+			LeadHeight = br.ReadInt16();
+			LeadWidth = br.ReadInt16();
 			KerningPairIndexOffset = br.ReadInt32();
 			KerningPairCount = br.ReadInt32(); //unsupported atm
 
@@ -1005,10 +1005,10 @@ namespace FontPackager
 
 		public void ReadH2Header(BinaryReader br)
 		{
-			LineHeight = br.ReadInt16();
-			LineTopPad = br.ReadInt16();
-			LineBottomPad = br.ReadInt16();
-			LineIndent = br.ReadInt16();
+			AscendHeight = br.ReadInt16();
+			DescendHeight = br.ReadInt16();
+			LeadHeight = br.ReadInt16();
+			LeadWidth = br.ReadInt16();
 			CharacterCount = br.ReadInt32();
 			unk7 = br.ReadInt32();
 			unk8 = br.ReadInt32();
@@ -1116,8 +1116,8 @@ namespace FontPackager
 		public UInt16 dataSize { get; set; }
 		public UInt16 width { get; set; }
 		public UInt16 height { get; set; }
-		public Int16 leftpad { get; set; }
-		public UInt16 dispHeight { get; set; }
+		public Int16 originx { get; set; }
+		public UInt16 originy { get; set; }
 
 		public UInt32 OffsetH2 { get; set; }
 
@@ -1141,8 +1141,8 @@ namespace FontPackager
 			dataSize = br.ReadUInt16();
 			width = br.ReadUInt16();
 			height = br.ReadUInt16();
-			leftpad = br.ReadInt16();
-			dispHeight = br.ReadUInt16();
+			originx = br.ReadInt16();
+			originy = br.ReadUInt16();
 
 			if (h2)
 				OffsetH2 = br.ReadUInt32();

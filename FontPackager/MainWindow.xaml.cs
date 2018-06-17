@@ -243,22 +243,22 @@ namespace FontPackager
 					"\r\n\r\nWidth: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.width +
 					"\r\nDisplay Width: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispWidth +
 					"\r\nHeight: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height +
-					"\r\nDisplay Height: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispHeight +
-					"\r\nLeft Pad: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.leftpad;
+					"\r\nOrigin x: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.originx +
+					"\r\nOrigin y: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.originy;
 				fontChar.Height = package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height;
-				fontChar.Padding = new Thickness(0);
+				fontChar.Padding = new Thickness(-1);
 				fontChar.VerticalAlignment = System.Windows.VerticalAlignment.Center;
-				fontChar.Margin = new Thickness(1);
+				fontChar.Margin = new Thickness(1.5,2.5,1.5,2.5);
 				fontChar.Tag = unicode;
 				fontChar.MouseDoubleClick += CopyUnicode;
 
 				lstChars.Items.Add(fontChar);
 			}
 
-			fontHeight.Text = package.Fonts[fontslist.SelectedIndex].LineHeight.ToString();
-			fontTPad.Text = package.Fonts[fontslist.SelectedIndex].LineTopPad.ToString();
-			fontBPad.Text = package.Fonts[fontslist.SelectedIndex].LineBottomPad.ToString();
-			fontLI.Text = package.Fonts[fontslist.SelectedIndex].LineIndent.ToString();
+			fontAHeight.Text = package.Fonts[fontslist.SelectedIndex].AscendHeight.ToString();
+			fontDHeight.Text = package.Fonts[fontslist.SelectedIndex].DescendHeight.ToString();
+			fontLHeight.Text = package.Fonts[fontslist.SelectedIndex].LeadHeight.ToString();
+			fontLWidth.Text = package.Fonts[fontslist.SelectedIndex].LeadWidth.ToString();
 		}
 
 		public void UpdateOrderDisplay()
@@ -322,10 +322,10 @@ namespace FontPackager
 			if (fontslist.SelectedIndex == -1)
 				return;
 
-			package.Fonts[fontslist.SelectedIndex].LineHeight = height;
-			package.Fonts[fontslist.SelectedIndex].LineTopPad = tpad;
-			package.Fonts[fontslist.SelectedIndex].LineBottomPad = bpad;
-			package.Fonts[fontslist.SelectedIndex].LineIndent = unk;
+			package.Fonts[fontslist.SelectedIndex].AscendHeight = height;
+			package.Fonts[fontslist.SelectedIndex].DescendHeight = tpad;
+			package.Fonts[fontslist.SelectedIndex].LeadHeight = bpad;
+			package.Fonts[fontslist.SelectedIndex].LeadWidth = unk;
 		}
 
 		private short ParseHeaderShort(string valuename, string input)
@@ -399,10 +399,10 @@ namespace FontPackager
 			if (fontslist.SelectedIndex == -1)
 				return;
 
-			short height = ParseHeaderShort("height", fontHeight.Text);
-			short tpad = ParseHeaderShort("top padding", fontTPad.Text);
-			short bpad = ParseHeaderShort("bottom padding", fontBPad.Text);
-			short unk = ParseHeaderShort("indent", fontLI.Text);
+			short height = ParseHeaderShort("ascend height", fontAHeight.Text);
+			short tpad = ParseHeaderShort("descend height", fontDHeight.Text);
+			short bpad = ParseHeaderShort("lead height", fontLHeight.Text);
+			short unk = ParseHeaderShort("lead width", fontLWidth.Text);
 
 			if (height == -1 || tpad == -1 || bpad == -1 || unk == -1)
 				return;
@@ -526,7 +526,7 @@ namespace FontPackager
 
 			try
 			{
-				height = ushort.Parse(charHeight.Text);
+				height = ushort.Parse(charOriginY.Text);
 			}
 			catch
 			{
@@ -536,7 +536,7 @@ namespace FontPackager
 
 			try
 			{
-				leftpad = short.Parse(charLPad.Text);
+				leftpad = short.Parse(charOriginX.Text);
 			}
 			catch
 			{
@@ -545,8 +545,9 @@ namespace FontPackager
 			}
 
 			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispWidth = width;
-			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispHeight = height;
-			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.leftpad = leftpad;
+			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.originx = leftpad;
+			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.originy = height;
+			
 
 			WriteLog("Character update successful.");
 			UpdateFontDisplay();
@@ -747,7 +748,7 @@ namespace FontPackager
 				package.Fonts[fontslist.SelectedIndex].SortCharacters();
 
 				if ((bool)HOinfo.IsChecked)
-					UpdateFontInfo(package2.Fonts[fontindex].LineHeight, package2.Fonts[fontindex].LineTopPad, package2.Fonts[fontindex].LineBottomPad, package2.Fonts[fontindex].LineIndent);
+					UpdateFontInfo(package2.Fonts[fontindex].AscendHeight, package2.Fonts[fontindex].DescendHeight, package2.Fonts[fontindex].LeadHeight, package2.Fonts[fontindex].LeadWidth);
 
 				UpdateFontDisplay();
 
@@ -766,7 +767,7 @@ namespace FontPackager
 
 			try
 			{
-				height = short.Parse(fontHeight.Text);
+				height = short.Parse(fontAHeight.Text);
 			}
 			catch
 			{
@@ -775,7 +776,7 @@ namespace FontPackager
 			}
 
 			for (int i = 0; i < package.Fonts[fontslist.SelectedIndex].Characters.Count; i++)
-				package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispHeight = (ushort)height;
+				package.Fonts[fontslist.SelectedIndex].Characters[i].Data.originy = (ushort)height;
 
 			UpdateFontDisplay();
 		}
@@ -949,10 +950,10 @@ namespace FontPackager
 				pcimport.IsEnabled = false;
 				lstChars.Items.Clear();
 
-				fontHeight.Text = "";
-				fontTPad.Text = "";
-				fontBPad.Text = "";
-				fontLI.Text = "";
+				fontAHeight.Text = "";
+				fontDHeight.Text = "";
+				fontLHeight.Text = "";
+				fontLWidth.Text = "";
 			}
 				
 		}
@@ -967,8 +968,9 @@ namespace FontPackager
 				btnCharUpdate.IsEnabled = true;
 
 				charWidth.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispWidth.ToString();
-				charHeight.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispHeight.ToString();
-				charLPad.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.leftpad.ToString();
+				charOriginX.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.originx.ToString();
+				charOriginY.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.originy.ToString();
+				
 			}
 			else
 			{
@@ -978,8 +980,8 @@ namespace FontPackager
 				btnCharUpdate.IsEnabled = false;
 
 				charWidth.Text = "";
-				charHeight.Text = "";
-				charLPad.Text = "";
+				charOriginY.Text = "";
+				charOriginX.Text = "";
 			}
 		}
 
