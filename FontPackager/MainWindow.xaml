@@ -178,7 +178,8 @@
 			</Grid.RowDefinitions>
 			<TextBlock Text="Fonts:" Grid.Row="0" Grid.Column="0" Margin="4,0,0,0"/>
 			<TextBlock Text="{Binding ElementName=listfonts, Path=Items.Count, StringFormat={}{0:D}}" HorizontalAlignment="Right" Margin="0,0,4,0" />
-			<TextBlock Text="Engine Order:" Grid.Row="0" Grid.Column="1" Margin="4,0,0,0"/>
+			<TextBlock Text="Engine Order:" Grid.Row="0" Grid.Column="1" Margin="4,0,0,0"
+					   ToolTip="Engine Order is how the games reference fonts internally. Fonts can be used in multiple indexes." />
 
 			<ListBox x:Name="listfonts" Grid.Row="1" Grid.Column="0" Margin="0,0,2,0" HorizontalContentAlignment="Stretch" SelectionMode="Single" AllowDrop="True" Drop="listfonts_Drop"
 					  MouseDoubleClick="listfonts_MouseDoubleClick" PreviewDragOver="listfonts_PreviewDrag" PreviewKeyDown="listfonts_PreviewKeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
