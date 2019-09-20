@@ -229,14 +229,17 @@
 													<Image Source="{Binding Image}" Stretch="None" VerticalAlignment="Center" HorizontalAlignment="Center" SnapsToDevicePixels="True" />
 												</Grid>
 
-												<Line SnapsToDevicePixels="True" x:Name="vert" X1="{Binding Path=OriginX, Converter={StaticResource orgconv}}" X2="{Binding Path=OriginX, Converter={StaticResource orgconv}}"  RenderOptions.EdgeMode="Aliased"
-													Y1="0" Y2="{Binding Height}" StrokeThickness="1" Stroke="Blue" Visibility="Hidden"/>
+												<Line SnapsToDevicePixels="True" x:Name="vert" RenderOptions.EdgeMode="Aliased" StrokeThickness="1" Stroke="Blue" Visibility="Hidden"
+													  X1="{Binding Path=OriginX, Converter={StaticResource orgconv}}" X2="{Binding Path=OriginX, Converter={StaticResource orgconv}}"
+													  Y1="0" Y2="{Binding Path=Height, Converter={StaticResource scaleconv}}" />
 
-												<Line SnapsToDevicePixels="True" x:Name="horiz" X1="{Binding Path=OriginX, Converter={StaticResource orgconv}}" X2="{Binding Path=DisplayWidth, Converter={StaticResource scaleconv}}" RenderOptions.EdgeMode="Aliased"
-													Y1="{Binding Path=OriginY, Converter={StaticResource scaleconv}}" Y2="{Binding Path=OriginY, Converter={StaticResource scaleconv}}" StrokeThickness="1" Stroke="Lime"  Visibility="Hidden"/>
+												<Line SnapsToDevicePixels="True" x:Name="horiz" RenderOptions.EdgeMode="Aliased" StrokeThickness="1" Stroke="Lime"  Visibility="Hidden"
+													  X1="{Binding Path=OriginX, Converter={StaticResource orgconv}}" X2="{Binding Path=DisplayWidth, Converter={StaticResource scaleconv}}"
+													  Y1="{Binding Path=OriginY, Converter={StaticResource scaleconv}}" Y2="{Binding Path=OriginY, Converter={StaticResource scaleconv}}" />
 
-												<Line SnapsToDevicePixels="True" x:Name="dwidth" X1="{Binding Path=DisplayWidth, Converter={StaticResource scaleconv}}" X2="{Binding Path=DisplayWidth, Converter={StaticResource scaleconv}}"  RenderOptions.EdgeMode="Aliased"
-													Y1="0" Y2="{Binding Height}" StrokeThickness="1" Stroke="Red" Visibility="Hidden"/>
+												<Line SnapsToDevicePixels="True" x:Name="dwidth"  RenderOptions.EdgeMode="Aliased" StrokeThickness="1" Stroke="Red" Visibility="Hidden"
+													  X1="{Binding Path=DisplayWidth, Converter={StaticResource scaleconv}}" X2="{Binding Path=DisplayWidth, Converter={StaticResource scaleconv}}"
+													  Y1="0" Y2="{Binding Path=Height, Converter={StaticResource scaleconv}}" />
 												
 											</Canvas>
 											<Border.ContextMenu>
