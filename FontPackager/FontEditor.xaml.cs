@@ -530,6 +530,11 @@ namespace FontPackager
 
 		private void ExtractBat_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
+			var res = MessageBox.Show("There are " + listchars.SelectedItems.Count + " characters currently selected. Each character will be saved as a separate image file once a folder is chosen. Are you sure?", "Confirm Batch Extraction", MessageBoxButton.OKCancel);
+
+			if (res != MessageBoxResult.OK)
+				return;
+
 			using (System.Windows.Forms.FolderBrowserDialog fbd = new System.Windows.Forms.FolderBrowserDialog())
 			{
 				System.Windows.Forms.DialogResult result = fbd.ShowDialog();
