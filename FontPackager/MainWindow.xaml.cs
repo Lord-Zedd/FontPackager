@@ -1,21 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.IO;
-using System.Drawing;
-using System.Threading;
-using System.Drawing.Imaging;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using FontPackager.Dialogs;
+using FontPackager.Classes;
+using System;
+using System.Windows.Data;
+using System.Globalization;
 
 namespace FontPackager
 {
@@ -24,997 +20,786 @@ namespace FontPackager
 	/// </summary>
 	public partial class MainWindow : Window
 	{
+		public ObservableCollection<BlamFont> Fonts { get; set; }
+		public ObservableCollection<EngineOrderItem> EngineOrdering { get; set; }
+
+		public FileFormat TargetFormat { get { return (FileFormat)((ComboBoxItem)cmbFmt.SelectedItem).Tag; } }
+
+		private string LastFilePath = "";
+
+		private List<FontEditor> OpenEditors;
+
+		bool isdropping_reorder = false;
+		FontCreator fc = null;
+		
 		public MainWindow()
 		{
 			InitializeComponent();
-
-			logbox.Text = "Font Packager by Lord Zedd. Open a font package!\r\nDon't mod online you fucking shitheads.";
+			OpenEditors = new List<FontEditor>();
 		}
-		FontPackage package;
 
-		#region top controls
-		private void btnOpenPkg_Click(object sender, RoutedEventArgs e)
+		#region general
+
+		private void CopyCollection(BlamFont font)
+		{
+			CopyCollection(new List<BlamFont>() { font });
+		}
+		private void CopyCollection(List<BlamFont> fonts)
+		{
+			foreach (BlamFont f in fonts)
+				Fonts.Add(f);
+
+			RefreshFontList();
+		}
+		private void CopyOrders(List<int> orders)
+		{
+			for (int i = 0; i < 64; i++)
+			{
+				if (orders != null && i < orders.Count && orders[i] != -1)
+					EngineOrdering.Add(new EngineOrderItem(Fonts[orders[i]]));
+				else
+					EngineOrdering.Add(new EngineOrderItem(null));
+			}
+
+			RefreshOrderList();
+		}
+		private List<int> CreateOrderList()
+		{
+			List<int> orders = new List<int>();
+			foreach (EngineOrderItem o in EngineOrdering)
+				orders.Add(Fonts.IndexOf(o.Font));
+			return orders;
+		}
+
+		private void RefreshFontList()
+		{
+			listfonts.ItemsSource = null;
+			listfonts.ItemsSource = Fonts;
+		}
+
+		private void RefreshOrderList()
+		{
+			listengineorders.ItemsSource = null;
+			listengineorders.ItemsSource = EngineOrdering;
+		}
+		
+		public bool VerifyFonts(FileFormat format)
+		{
+			string result = "";
+			using (StringWriter sw = new StringWriter())
+			{
+				foreach (BlamFont font in Fonts)
+				{
+					string f = font.Verify(format);
+					if (!string.IsNullOrEmpty(f))
+					{
+						sw.WriteLine("~" + font.Name);
+						sw.Write(f);
+						sw.WriteLine();
+					}
+				}
+
+				result = sw.ToString();
+			}
+
+			if (string.IsNullOrEmpty(result))
+				return true;
+
+			ListDialog ve = new ListDialog(result);
+			ve.Show();
+
+			return false;
+		}
+
+		private void CloseEditors()
+		{
+			foreach (FontEditor e in OpenEditors)
+			{
+				e.Closing -= Editor_Closing;
+				e.Close();
+			}
+
+			OpenEditors.Clear();
+		}
+
+		private void ClearLists()
+		{
+			listengineorders.ItemsSource = null;
+			listfonts.ItemsSource = null;
+
+			if (EngineOrdering != null)
+				EngineOrdering.Clear();
+
+			if (Fonts != null)
+				Fonts.Clear();
+
+			Fonts = new ObservableCollection<BlamFont>();
+			EngineOrdering = new ObservableCollection<EngineOrderItem>();
+		}
+
+		#endregion
+
+		#region loading
+		private void FinishLoading(FileFormat format, List<BlamFont> fonts, List<int> orders)
+		{
+			CloseEditors();
+
+			ClearLists();
+
+			switch(format)
+			{
+				case FileFormat.H2X:
+					cmbFmt.SelectedIndex = 0;
+					break;
+				case FileFormat.H2V:
+					cmbFmt.SelectedIndex = 1;
+					break;
+				case FileFormat.H3B:
+					cmbFmt.SelectedIndex = 2;
+					break;
+
+				default:
+				case FileFormat.Package:
+					cmbFmt.SelectedIndex = 3;
+					break;
+				case FileFormat.H4B:
+					cmbFmt.SelectedIndex = 4;
+					break;
+				case FileFormat.H4:
+					cmbFmt.SelectedIndex = 5;
+					break;
+				case FileFormat.MCC:
+					cmbFmt.SelectedIndex = 6;
+					break;
+			}
+
+			CopyCollection(fonts);
+			CopyOrders(orders);
+			
+			fname.Text = Path.GetFileName(LastFilePath);
+			fname.ToolTip = LastFilePath;
+			
+			MessageBox.Show("\"" + Path.GetFileName(LastFilePath) + "\" has been loaded successfully with " + Fonts.Count + " fonts.");
+			
+			menuSaveAs.IsEnabled = true;
+			menuTools.IsEnabled = true;
+		}
+
+		private static Tuple<string, FileFormat, List<BlamFont>, List<int>> OpenAndLoadPackage()
 		{
 			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
 			ofd.RestoreDirectory = true;
 			ofd.Title = "Open Font Package";
-			ofd.Filter = "Font Collection (*.bin,*.txt)|*.bin;*.txt|Single H2 Font (*.*) | *";
-			if ((bool)ofd.ShowDialog())
+			ofd.Filter = "Font Package (*.bin)|*.bin";
+			if (!(bool)ofd.ShowDialog())
+				return null;
+
+			string filename = ofd.FileName;
+			var res = PackageIO.Read(ofd.FileName);
+
+			switch (res.Item1)
 			{
-				package = new FontPackage();
-
-				if (!ofd.FileName.EndsWith(".bin"))
-				{
-					switch (package.LoadH2(ofd.FileName))
-					{
-						case 0:
-							break;
-						case 1:
-							WriteLog("File \"" + ofd.SafeFileName + "\" has an invalid header version value and was not loaded.");
-							return;
-						case 2:
-							WriteLog("List \"" + ofd.SafeFileName + "\" contained no valid fonts.");
-							return;
-					}
-
-					btnSavefile.IsEnabled = true;
-				}
-				else
-				{
-					switch (package.Load(ofd.FileName))
-					{
-						case 0:
-							break;
-						case 1:
-							WriteLog("File \"" + ofd.SafeFileName + "\" has an invalid header version value and was not loaded.");
-							return;
-						case 2:
-							WriteLog("File \"" + ofd.SafeFileName + "\" has a font count of 0 and was not loaded.");
-							return;
-					}
-
-					btnSavefile.IsEnabled = false;
-				}
-
-				inputpkgpath.Text = ofd.FileName;
-
-				WriteLog("File \"" + ofd.SafeFileName + "\" has been loaded successfully with " + package.Fonts.Count + " fonts.");
-
-				FinishOpening();
-
+				case IOError.None:
+					return new Tuple<string, FileFormat, List<BlamFont>, List<int>>
+						(filename, res.Item2, res.Item3, res.Item4);
+				case IOError.BadVersion:
+					MessageBox.Show("Package \"" + ofd.SafeFileName + "\" has an invalid header version value and was not loaded.");
+					return null;
+				case IOError.Empty:
+					MessageBox.Show("Package \"" + ofd.SafeFileName + "\" has a font count of 0 and was not loaded.");
+					return null;
+				default:
+					MessageBox.Show("An unknown error occurred loading package \"" + ofd.SafeFileName + "\".");
+					return null;
 			}
 		}
 
-		private void btnOpenFold_Click(object sender, RoutedEventArgs e)
-		{
-			System.Windows.Forms.FolderBrowserDialog fbd = new System.Windows.Forms.FolderBrowserDialog();
-
-			System.Windows.Forms.DialogResult result = fbd.ShowDialog();
-			if (result.ToString() == "OK")
-			{
-				package = new FontPackage();
-
-				switch (package.LoadH2Folder(fbd.SelectedPath))
-				{
-					case 0:
-						break;
-					case 1:
-						WriteLog("Folder \"\\" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" contained no valid fonts.");
-						return;
-				}
-			}
-			else return;
-
-			inputpkgpath.Text = fbd.SelectedPath;
-
-			WriteLog("Folder \"\\" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" has been loaded successfully with " + package.Fonts.Count + " fonts.");
-
-			btnSavefile.IsEnabled = true;
-			FinishOpening();
-
-		}
-
-		private void btnSavepkg_Click(object sender, RoutedEventArgs e)
-		{
-			if (!inputpkgpath.Text.EndsWith(".bin"))
-			{
-				for (int i = 0; i < package.Fonts.Count; i++)
-				{
-					if (File.Exists(package.Fonts[i].H2File))
-						package.RebuildFile(package.Fonts[i].H2File, i);
-				}
-
-				if (inputpkgpath.Text.EndsWith(".txt"))
-					WriteLog("Fonts from \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" have been saved successfully.");
-				else if (inputpkgpath.Text.EndsWith("\\"))
-					WriteLog("Fonts from \"\\" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" have been saved successfully.");
-				else
-					WriteLog("Font \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" has been saved successfully.");
-			}
-			else
-			{
-				package.RebuildPkg(inputpkgpath.Text);
-
-				WriteLog("Font Package \"" + System.IO.Path.GetFileName(inputpkgpath.Text) + "\" has been saved successfully.");
-			}
-			
-		}
-
-		private void btnSavefile_Click(object sender, RoutedEventArgs e)
-		{
-			if (!inputpkgpath.Text.EndsWith(".bin"))
-			{
-				if (File.Exists(package.Fonts[fontslist.SelectedIndex].H2File))
-					package.RebuildFile(package.Fonts[fontslist.SelectedIndex].H2File, fontslist.SelectedIndex);
-
-				WriteLog("Font \"" + package.Fonts[fontslist.SelectedIndex].H2FileSafe() + "\" has been saved successfully.");
-			}
-		}
-		#endregion
-
-		#region functions
-		private void FinishOpening()
-		{
-			fontslist.Items.Clear();
-
-			btnSavepkg.IsEnabled = true;
-			btnAddBat.IsEnabled = true;
-			btndeleteBat.IsEnabled = true;
-
-			
-
-
-			bool bigfont = false;
-			orderlistfonts.Items.Clear();
-			orderlistfonts.Items.Add("null");
-
-			for (int i = 0; i < package.Fonts.Count; i++)
-			{
-				fontslist.Items.Add(i.ToString() + ": " + package.Fonts[i].Name + "  [" + package.Fonts[i].CharacterCount + "]");
-
-				orderlistfonts.Items.Add(package.Fonts[i].Name);
-
-				if (package.Fonts[i].CharacterCount > 5000)
-					bigfont = true;
-			}
-
-			fontslist.SelectedIndex = 0;
-
-			if (bigfont)
-				WriteLog("NOTE: Package contains one or more fonts with over 5000 characters, performance may suffer.");
-
-			orderlistfonts.SelectedIndex = 0;
-
-			if (inputpkgpath.Text.EndsWith(".bin"))
-			{
-				orderlist.IsEnabled = true;
-				btnOrder.IsEnabled = true;
-				orderlistfonts.IsEnabled = true;
-				txtOrderDesc.Visibility = Visibility.Visible;
-				txtOrderHTwo.Visibility = Visibility.Collapsed;
-				UpdateOrderDisplay();
-			}
-			else
-			{
-				txtOrderDesc.Visibility = Visibility.Collapsed;
-				txtOrderHTwo.Visibility = Visibility.Visible;
-			}
-
-				
-		}
-
-		public void UpdateFontDisplay()
-		{
-			if (fontslist.SelectedIndex == -1)
-				return ;
-
-			lstChars.Items.Clear();
-
-			for (int i = 0; i < package.Fonts[fontslist.SelectedIndex].Characters.Count; i++)
-			{
-				if (package.Fonts[fontslist.SelectedIndex].Characters[i].Data.width == 0)
-					continue;
-				if (package.Fonts[fontslist.SelectedIndex].Characters[i].isdupe == true)
-					continue;
-
-				ListBoxItem fontChar = new ListBoxItem();
-
-				fontChar.Content = new System.Windows.Controls.Image()
-				{
-					Source = package.Fonts[fontslist.SelectedIndex].Characters[i].Data.getImage(),
-					Stretch = Stretch.None
-				};
-
-				var unicode = package.Fonts[fontslist.SelectedIndex].Characters[i].CharCode;
-				var utf8 = Encoding.UTF8.GetBytes(Convert.ToChar(unicode).ToString());
-
-				string utf8Code = "";
-				for (int u = 0; u < utf8.Length; u++)
-				{
-					if (u == 0)
-						utf8Code += utf8[u].ToString("X2");
-					else
-						utf8Code += " " + utf8[u].ToString("X2");
-				}
-
-				fontChar.ToolTip = "Unicode: " + unicode.ToString("X4") + " [" + unicode.ToString() + "]" +
-					"\r\nUTF8: " + utf8Code +
-					"\r\nDouble click to copy as a unicode character to the clipboard." +
-					"\r\n\r\nWidth: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.width +
-					"\r\nDisplay Width: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispWidth +
-					"\r\nHeight: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height +
-					"\r\nOrigin x: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.originx +
-					"\r\nOrigin y: " + package.Fonts[fontslist.SelectedIndex].Characters[i].Data.originy;
-				fontChar.Height = package.Fonts[fontslist.SelectedIndex].Characters[i].Data.height;
-				fontChar.Padding = new Thickness(-1);
-				fontChar.VerticalAlignment = System.Windows.VerticalAlignment.Center;
-				fontChar.Margin = new Thickness(1.5,2.5,1.5,2.5);
-				fontChar.Tag = unicode;
-				fontChar.MouseDoubleClick += CopyUnicode;
-
-				lstChars.Items.Add(fontChar);
-			}
-
-			fontAHeight.Text = package.Fonts[fontslist.SelectedIndex].AscendHeight.ToString();
-			fontDHeight.Text = package.Fonts[fontslist.SelectedIndex].DescendHeight.ToString();
-			fontLHeight.Text = package.Fonts[fontslist.SelectedIndex].LeadHeight.ToString();
-			fontLWidth.Text = package.Fonts[fontslist.SelectedIndex].LeadWidth.ToString();
-		}
-
-		public void UpdateOrderDisplay()
-		{
-			orderlist.Items.Clear();
-
-			for (int i = 0; i < package.OrderList.Count; i++)
-			{
-				var oi = new OrderItem() { OrderIndex = i, OrderValue = package.OrderList[i], Name = orderlistfonts.Items[package.OrderList[i] + 1].ToString() };
-				orderlist.Items.Add(oi);
-			}
-		}
-
-
-		private string OpenImage()
+		private static Tuple<string, FileFormat, List<BlamFont>, List<int>> OpenAndLoadTable()
 		{
 			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
 			ofd.RestoreDirectory = true;
-			ofd.Title = "Select Image";
-			ofd.Filter = "Image Files(*.bmp; *.jpg; *.gif; *.png)| *.bmp; *.jpg; *.gif; *.png; | All files(*.*) | *; ";
-			if ((bool)ofd.ShowDialog())
-				return ofd.FileName;
-			else
+			ofd.Title = "Open Font Table";
+			ofd.Filter = "Font Table (*.txt)|*.txt";
+			if (!(bool)ofd.ShowDialog())
 				return null;
-		}
 
-		private UInt16 ParseChar(string command, string input)
-		{
-			if (input.Length == 0)
+			string filename = ofd.FileName;
+			var res = TableIO.ReadTable(ofd.FileName);
+
+			switch (res.Item1)
 			{
-				WriteLog(command + " failed: Invalid unicode entered (Box is empty)");
-				return 0xFFFF;
-			}
-
-			UInt16 char2add;
-
-			try
-			{
-				char2add = UInt16.Parse(input, System.Globalization.NumberStyles.HexNumber);
-
-				if (char2add == 0xFFFF)
-					WriteLog(command + " failed: Character 0xFFFF is invalid, use 0xFFFE.");
-
-				return char2add;
-			}
-			catch
-			{
-				WriteLog(command + " failed: Invalid unicode entered (Could not parse hex)");
-				return 0xFFFF;
+				case IOError.None:
+					return new Tuple<string, FileFormat, List<BlamFont>, List<int>>
+						(filename, res.Item2, res.Item3, res.Item4);
+				case IOError.BadVersion:
+					MessageBox.Show("A font within list \"" + ofd.SafeFileName + "\" had an invalid header version value and loading was cancelled.");
+					return null;
+				case IOError.Empty:
+					MessageBox.Show("List \"" + ofd.SafeFileName + "\" has no valid fonts.");
+					return null;
+				default:
+					MessageBox.Show("An unknown error occurred loading list \"" + ofd.SafeFileName + "\".");
+					return null;
 			}
 		}
 
-		private void WriteLog(string input)
+		private static List<BlamFont> OpenAndImportLooseFonts()
 		{
-			logbox.AppendText("\r\n" + input);
-			logbox.ScrollToEnd();
-		}
+			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
+			ofd.RestoreDirectory = true;
+			ofd.Title = "Open Font Files";
+			ofd.Filter = "Single H2 Font (*)|*";
+			ofd.Multiselect = true;
+			if (!(bool)ofd.ShowDialog() || ofd.FileNames.Length == 0)
+				return null;
 
-		public void UpdateFontInfo(short height, short tpad, short bpad, short unk)
-		{
-			if (fontslist.SelectedIndex == -1)
-				return;
+			List<BlamFont> fonts = new List<BlamFont>();
 
-			package.Fonts[fontslist.SelectedIndex].AscendHeight = height;
-			package.Fonts[fontslist.SelectedIndex].DescendHeight = tpad;
-			package.Fonts[fontslist.SelectedIndex].LeadHeight = bpad;
-			package.Fonts[fontslist.SelectedIndex].LeadWidth = unk;
-		}
-
-		private short ParseHeaderShort(string valuename, string input)
-		{
-			short output = -1;
-
-			try
+			foreach (string fn in ofd.FileNames)
 			{
-				output = short.Parse(input);
+				var res = TableIO.ReadLooseFile(fn);
+
+				switch (res.Item1)
+				{
+					case IOError.None:
+						fonts.Add(res.Item3);
+						break;
+					case IOError.BadVersion:
+						MessageBox.Show("Font \"" + Path.GetFileName(fn) + "\" had an invalid header version value and was not loaded.");
+						break;
+					default:
+						MessageBox.Show("An unknown error occurred loading font file \"" + Path.GetFileName(fn) + "\".");
+						break;
+				}
+				continue;
 			}
-			catch
+
+			if (fonts.Count == 0)
+				return null;
+
+			return fonts;
+		}
+
+		private static Tuple<string, List<BlamFont>> OpenAndImportCacheFonts()
+		{
+			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
+			ofd.RestoreDirectory = true;
+			ofd.Title = "Open Cache File";
+			ofd.Filter = "Halo CE Cache File (*.map)|*.map";
+			if (!(bool)ofd.ShowDialog())
+				return null;
+
+			string filename = ofd.FileName;
+			var res = TagIO.Read(ofd.FileName);
+
+			switch (res.Item1)
 			{
-				WriteLog("Info update failed: Could not parse " + valuename + ".");
-				return -1;
+				case IOError.None:
+					return new Tuple<string, List<BlamFont>>
+						(filename, res.Item2);
+				case IOError.BadVersion:
+					MessageBox.Show("Cache \"" + ofd.SafeFileName + "\" has an invalid header version (Not an Xbox CE map) and was not loaded.");
+					return null;
+				case IOError.Empty:
+					MessageBox.Show("Cache \"" + ofd.SafeFileName + "\" has no font tags.");
+					return null;
+				default:
+					MessageBox.Show("An unknown error occurred loading cache \"" + ofd.SafeFileName + "\".");
+					return null;
 			}
+		}
 
-			if (output < 0 || output > 64)
+		private static Tuple<string, List<BlamFont>> OpenAndImportDirectory()
+		{
+			using (System.Windows.Forms.FolderBrowserDialog fbd = new System.Windows.Forms.FolderBrowserDialog())
 			{
-				WriteLog("Info update failed: " + valuename + " " + output + " out of range (0-64).");
-				return -1;
+				System.Windows.Forms.DialogResult result = fbd.ShowDialog();
+				if (!(result.ToString() == "OK"))
+					return null;
+
+				string folder = Path.GetFileName(fbd.SelectedPath);
+				var res = TableIO.ReadDirectory(fbd.SelectedPath);
+
+				switch (res.Item1)
+				{
+					case IOError.None:
+						return new Tuple<string, List<BlamFont>>
+							(folder, res.Item2);
+					case IOError.BadVersion:
+						MessageBox.Show("A font within folder \"\\" + folder + "\" had an invalid header version value and loading was cancelled.");
+						return null;
+					case IOError.Empty:
+						MessageBox.Show("Folder \"\\" + folder + "\" contained no valid fonts.");
+						return null;
+					default:
+						MessageBox.Show("An unknown error occurred loading folder \"\\" + folder + "\".");
+						return null;
+				}
 			}
-			return output;
+
 		}
-
-		private ushort CharFromSelectedItem()
-		{
-			ListBoxItem item = (ListBoxItem)lstChars.SelectedItem;
-			return ((ushort)item.Tag);
-		}
-		private int IndexFromSelectedItem()
-		{
-			return package.Fonts[fontslist.SelectedIndex].FindCharacter(CharFromSelectedItem());
-		}
-
-		public System.Drawing.Image BitmapFromFont(Font font, float offset, string txt)
-		{
-			StringFormat yee;
-
-			if (txt == " ")
-				yee = StringFormat.GenericDefault;
-			else
-				yee = StringFormat.GenericTypographic;
-
-			System.Drawing.Bitmap bmp = new Bitmap(1, 1);
-			Graphics g = Graphics.FromImage(bmp);
-
-			PointF rect = new PointF(0, offset);
-			SizeF size = g.MeasureString(txt, font, rect, yee);
-
-			if (size.Width < 1) size.Width = 1;
-			if (size.Height < 1) size.Width = 1;
-
-			bmp = new Bitmap((int)size.Width, (int)size.Height);
-			g = Graphics.FromImage(bmp);
-
-			g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAlias;
-			g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
-			g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
-
-			g.DrawString(txt, font, new SolidBrush(System.Drawing.Color.White), rect, yee);
-
-			return bmp;
-		}
-
 		#endregion
 
-		#region font tab controls
-
-		private void btnFontUpdate_Click(object sender, RoutedEventArgs e)
+		#region saving
+		private bool SavePackage(FileFormat format)
 		{
-			if (fontslist.SelectedIndex == -1)
-				return;
-
-			short height = ParseHeaderShort("ascend height", fontAHeight.Text);
-			short tpad = ParseHeaderShort("descend height", fontDHeight.Text);
-			short bpad = ParseHeaderShort("lead height", fontLHeight.Text);
-			short unk = ParseHeaderShort("lead width", fontLWidth.Text);
-
-			if (height == -1 || tpad == -1 || bpad == -1 || unk == -1)
-				return;
-
-			UpdateFontInfo(height, tpad, bpad, unk);
-		}
-
-		#region font character tab controls
-		private void btnReplace_Click(object sender, RoutedEventArgs e)
-		{
-			if (lstChars.SelectedIndex == -1)
-				return;
-
-			var path = OpenImage();
-			if (path != null)
-			{
-				System.Drawing.Image newpic = System.Drawing.Image.FromFile(path);
-
-				UInt16 char2replace = CharFromSelectedItem();
-
-				package.AddCustomCharacter(char2replace, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex, (bool)chkCrop.IsChecked);
-
-				newpic.Dispose();
-
-				UpdateFontDisplay();
-
-				WriteLog("Character " + char2replace + " was successfully replaced with " + System.IO.Path.GetFileName(path) + ".");
-			}
-
-		}
-
-		private void btnExtract_Click(object sender, RoutedEventArgs e)
-		{
-			if (lstChars.SelectedIndex == -1)
-				return;
+			string defaultname = "font_package";
+			if (!string.IsNullOrEmpty(fname.Text) && Path.GetExtension(fname.Text) == ".bin")
+				defaultname = Path.GetFileNameWithoutExtension(fname.Text);
 
 			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog();
 			sfd.RestoreDirectory = true;
-			sfd.Title = "Save Font Character";
-			sfd.Filter = "PNG Image (*.png)|*.png;|Raw Data (Debug) (*.bin)|*.bin;";
-			if ((bool)sfd.ShowDialog())
-			{
-				switch (sfd.FilterIndex)
-				{
-					case 1:
-						FileStream file = new FileStream(sfd.FileName, FileMode.Create, System.IO.FileAccess.Write);
-						BitmapEncoder encoder = new PngBitmapEncoder();
-						encoder.Frames.Add(BitmapFrame.Create(package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.getImage()));
-						encoder.Save(file);
-						file.Close();
-						lstChars.UnselectAll();
+			sfd.Title = "Save Font Package";
+			sfd.Filter = "Font Package (*.bin)|*.bin";
+			sfd.FileName = defaultname;
+			if (!(bool)sfd.ShowDialog())
+				return false;
 
-						WriteLog("Character successfully extracted to " + sfd.SafeFileName + ".");
-						break;
-					case 2:
-						FileStream filex = new FileStream(sfd.FileName, FileMode.Create, System.IO.FileAccess.Write);
-						filex.Write(package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.compressedData, 0,
-							package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dataSize);
-						filex.Close();
-						lstChars.UnselectAll();
+			if (!VerifyFonts(format))
+				return false;
 
-						WriteLog("Raw compressed character successfully extracted to " + sfd.SafeFileName + ".");
-						break;
-				}
-			}
+			PackageIO.Write(Fonts.ToList(), CreateOrderList(), sfd.FileName, format);
+
+			LastFilePath = sfd.FileName;
+
+			fname.Text = Path.GetFileName(LastFilePath);
+			fname.ToolTip = LastFilePath;
+
+			return true;
 		}
 
-		private void btnDelete_Click(object sender, RoutedEventArgs e)
+		private bool SaveTable(FileFormat format)
 		{
-			if (lstChars.SelectedIndex != -1)
-				if (MessageBox.Show("You sure you wanna do this?", "Delete Character", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
-				{
-					ushort oldchar = CharFromSelectedItem();
-					package.Fonts[fontslist.SelectedIndex].Characters.RemoveAt(lstChars.SelectedIndex);
-					UpdateFontDisplay();
+			string defaultname = "font_table";
+			if (!string.IsNullOrEmpty(fname.Text) && Path.GetExtension(fname.Text) == ".txt")
+				defaultname = Path.GetFileNameWithoutExtension(fname.Text);
 
-					WriteLog("Character " + oldchar.ToString("X4") + " was successfully removed!");
-				}
+			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog();
+			sfd.RestoreDirectory = true;
+			sfd.Title = "Save Font File";
+			sfd.Filter = "Font Table (*.txt)|*.txt";
+			sfd.FileName = defaultname;
+			if (!(bool)sfd.ShowDialog())
+				return false;
+
+			if (!VerifyFonts(format))
+				return false;
+
+			TableIO.WriteTable(Fonts.ToList(), CreateOrderList(), sfd.FileName, format);
+
+			LastFilePath = sfd.FileName;
+
+			fname.Text = Path.GetFileName(LastFilePath);
+			fname.ToolTip = LastFilePath;
+
+			return true;
 		}
 
-		private void btnAdd_Click(object sender, RoutedEventArgs e)
-		{
-			UInt16 char2add = ParseChar("Add", newChar.Text);
-			if (char2add == 0xFFFF)
-				return;
-
-			var path = OpenImage();
-			if (path != null)
-			{
-				System.Drawing.Image newpic = System.Drawing.Image.FromFile(path);
-				package.AddCustomCharacter(char2add, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex, (bool)chkCrop.IsChecked);
-
-				newpic.Dispose();
-				UpdateFontDisplay();
-
-				WriteLog("Character " + char2add + " was successfully added from " + System.IO.Path.GetFileName(path) + ".");
-				newChar.Text = "";
-			}
-		}
-
-		private void btnCharUpdate_Click(object sender, RoutedEventArgs e)
-		{
-			if (fontslist.SelectedIndex == -1)
-				return;
-			if (lstChars.SelectedIndex == -1)
-				return;
-
-			ushort width = 0;
-			ushort height = 0;
-			short leftpad = 0;
-
-			try
-			{
-				width = ushort.Parse(charWidth.Text);
-			}
-			catch
-			{
-				WriteLog("Character update failed: Could not parse display width.");
-				return;
-			}
-
-			try
-			{
-				height = ushort.Parse(charOriginY.Text);
-			}
-			catch
-			{
-				WriteLog("Character update failed: Could not parse display height.");
-				return;
-			}
-
-			try
-			{
-				leftpad = short.Parse(charOriginX.Text);
-			}
-			catch
-			{
-				WriteLog("Character update failed: Could not parse unknown value.");
-				return;
-			}
-
-			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispWidth = width;
-			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.originx = leftpad;
-			package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.originy = height;
-			
-
-			WriteLog("Character update successful.");
-			UpdateFontDisplay();
-		}
 		#endregion
 
-		#region font font tab controls
-		private void btnABC_Click(object sender, RoutedEventArgs e)
+		#region menus
+		private void btnNew_Click(object sender, RoutedEventArgs e)
 		{
-			abcFile abc;
 
-			string abcname = "";
-
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
-			ofd.RestoreDirectory = true;
-			ofd.Title = "Open ABC File";
-			ofd.Filter = "FontMaker ABC File (*.abc)|*.abc";
-			if ((bool)ofd.ShowDialog())
+			if (Fonts != null && Fonts.Count > 0)
 			{
-				FileStream fs = new FileStream(ofd.FileName, FileMode.Open);
-				BigEndianReader br = new BigEndianReader(fs);
-
-				br.BaseStream.Position = 0;
-
-				abc = new abcFile();
-
-				abc.Read(br);
-
-				br.Close();
-				fs.Close();
-
-				abcname = ofd.SafeFileName;
-			}
-			else
-				return;
-
-			if (abc.Height < 0 || abc.Height > 64)
-			{
-				WriteLog("ABC import failed: Height " + abc.Height + " out of range (0-64).");
-				return;
-			}
-			if (abc.TopPadding < 0 || abc.TopPadding > 64)
-			{
-				WriteLog("ABC import failed: Top padding " + abc.TopPadding + " out of range (0-64).");
-				return;
-			}
-			if (abc.BottomPadding < 0 || abc.BottomPadding > 64)
-			{
-				WriteLog("ABC import failed: Bottom padding " + abc.BottomPadding + " out of range (0-64).");
-				return;
-			}
-			if (abc.YAdvance < 0 || abc.YAdvance > 64)
-			{
-				WriteLog("ABC import failed: Indent " + abc.YAdvance + " out of range (0-64).");
-				return;
+				var res = MessageBox.Show("Are you sure you want to create a new collection? All fonts will be removed including any unsaved changes!", "Confirm New Collection", MessageBoxButton.OKCancel);
+				if (res != MessageBoxResult.OK)
+					return;
 			}
 
-			ofd = new Microsoft.Win32.OpenFileDialog();
-			ofd.RestoreDirectory = true;
-			ofd.Title = "Open Font Sheet";
-			ofd.Filter = "Converted FontMaker Image (*.png)|*.png";
-			if ((bool)ofd.ShowDialog())
-			{
-				System.Drawing.Image sheet = System.Drawing.Image.FromFile(ofd.FileName);
+			CloseEditors();
 
-				for (int i = 0; i < abc.GlyphCount; i++)
-				{
+			ClearLists();
 
-					System.Drawing.Rectangle rect = new System.Drawing.Rectangle(abc.GlyphTable[i].Left,
-						abc.GlyphTable[i].Top,
-						(abc.GlyphTable[i].Right - abc.GlyphTable[i].Left),
-						(abc.GlyphTable[i].Bottom - abc.GlyphTable[i].Top));
+			fname.Text = string.Empty;
+			fname.ToolTip = null;
 
-					if (rect.Left + rect.Width > sheet.Width)
-						rect.Width = sheet.Width - rect.Left;
-
-					if (rect.Top + rect.Height > sheet.Height)
-						rect.Height = sheet.Height - rect.Top;
-
-					//today i learned about empty characters
-					if (rect.Width == 0)
-						rect.Width = 1;
-					if (rect.Height == 0)
-						rect.Height = 1;
-
-					Bitmap bm = new Bitmap(sheet);
-					System.Drawing.Imaging.BitmapData bd = bm.LockBits(rect,
-					System.Drawing.Imaging.ImageLockMode.WriteOnly,
-					bm.PixelFormat);
-
-					var sauce = BitmapSource.Create(bd.Width, bd.Height, 96, 96, System.Windows.Media.PixelFormats.Bgra32, null, bd.Scan0, bd.Stride * bd.Height, bd.Stride);
-
-					MemoryStream ms = new MemoryStream();
-					var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
-					encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(sauce));
-					encoder.Save(ms);
-					ms.Flush();
-
-					var dispwidth = abc.GlyphTable[i].Width;
-
-					if (abc.CharCodes[i] == 0x20)
-					{
-						var periodindex = package.Fonts[fontslist.SelectedIndex].FindCharacter(0x2C);
-
-						if (periodindex != -1)
-							dispwidth = package.Fonts[fontslist.SelectedIndex].Characters[periodindex].Data.dispWidth;
-						else
-							dispwidth = 4;
-					}
-						
-
-					package.AddCustomCharacter(abc.CharCodes[i], fontslist.SelectedIndex, System.Drawing.Image.FromStream(ms), CharTint.None, true, dispwidth);
-
-					ms.Close();
-					bm.Dispose();
-				}
-
-				//for (int i = 0; i < package.Fonts[fontslist.SelectedIndex].Characters.Count; i++)
-				//{
-				//	package.Fonts[fontslist.SelectedIndex].Characters[i].Data.dispHeight = (ushort)abc.YAdvance;
-				//}
-				//
-				//UpdateFontInfo((short)abc.Height, (short)abc.TopPadding, (short)abc.BottomPadding, 0);
-				UpdateFontDisplay();
-
-				WriteLog("Characters successfully imported from abc file \"" + abcname + "\".");
-			}
+			listfonts.ItemsSource = Fonts;
+			CopyOrders(null);
+			
+			menuSaveAs.IsEnabled = true;
+			menuTools.IsEnabled = true;
 		}
 
-		private void HOCopy(object sender, RoutedEventArgs e)
+		private void btnOpen_Click(object sender, RoutedEventArgs e)
 		{
-			ushort startchar = ParseChar("Copy" , HOstart.Text);
-			if (startchar == 0xFFFF)
-				return;
-
-			ushort endchar = ParseChar("Copy", HOend.Text);
-			if (endchar == 0xFFFF)
-				return;
-
-			if (startchar > endchar)
+			switch ((string)((MenuItem)sender).Tag)
 			{
-				WriteLog("Copy failed: Invalid character range.");
+				case "package":
+					{
+						var res = OpenAndLoadPackage();
+						if (res == null)
+							return;
+
+						LastFilePath = res.Item1;
+						FinishLoading(res.Item2, res.Item3, res.Item4);
+					}
+					break;
+				case "table":
+					{
+						var res = OpenAndLoadTable();
+						if (res == null)
+							return;
+
+						FileFormat fmt = res.Item2;
+						if (fmt == FileFormat.Table)
+						{
+							FontTablePickGame picker = new FontTablePickGame();
+							picker.ShowDialog();
+
+							if (picker.DialogResult == false)
+								return;
+
+							fmt = picker.Game;
+						}
+
+						LastFilePath = res.Item1;
+						FinishLoading(fmt, res.Item3, res.Item4);
+					}
+					break;
+				default:
+					throw new NotImplementedException();
+			}
+
+			
+		}
+		
+		private void btnSave_Click(object sender, RoutedEventArgs e)
+		{
+			if (Fonts.Count == 0)
+			{
+				MessageBox.Show("Add at least 1 font to save a collection.");
 				return;
 			}
 
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
-			ofd.RestoreDirectory = true;
-			ofd.Title = "Open Font Package";
-			ofd.Filter = "Font Package (*.bin)|*.bin|Single H2 Font (*.*) | *";
-			if ((bool)ofd.ShowDialog())
+			bool success = false;
+
+			if (TargetFormat.HasFlag(FileFormat.Table))
 			{
-				FontPackage package2 = new FontPackage();
-
-				bool ish2 = false;
-
-				if (ofd.FileName.EndsWith(".bin"))
-					package2.Load(ofd.FileName);
-				else if (!ofd.FileName.EndsWith(".txt"))
+				if (Fonts.Count > 12)
 				{
-					package2.LoadH2(ofd.FileName);
-					ish2 = true;
-				}
-					
-				else
-				{
-					WriteLog("Copy failed: Halo 2 .txt files not supported for copying.");
-				}
-
-				ushort fontindex = 0;
-
-				if (!ish2)
-				{
-					fontindex = ParseChar("Copy", HOfont.Text);
-					if (fontindex == 0xFFFF && !ish2)
-						return;
-				}
-
-				
-
-				if (fontindex > package2.Fonts.Count)
-				{
-					WriteLog("Copy failed: Invalid font index for second package.");
-					package2 = new FontPackage();
+					MessageBox.Show("The table format only supports up to 12 fonts. Remove some to save as this format.");
 					return;
 				}
+				success = SaveTable(TargetFormat);
+			}
+				
+			else if (TargetFormat.HasFlag(FileFormat.Package))
+			{
+				int max = TargetFormat.HasFlag(FileFormat.Max64) ? 64 : 16;
 
-				for (int i = 0; i < package2.Fonts[fontindex].Characters.Count; i++)
-					if (package2.Fonts[fontindex].Characters[i].CharCode >= startchar && package2.Fonts[fontindex].Characters[i].CharCode <= endchar)
+				if (Fonts.Count > max)
+				{
+					MessageBox.Show("The chosen package format only supports up to " + max + " fonts. Remove some to save as this format.");
+					return;
+				}
+				success = SavePackage(TargetFormat);
+			}
+
+			if (success)
+				MessageBox.Show("\"" + Path.GetFileName(LastFilePath) + "\" has been saved successfully.");
+		}
+
+		private void btnImport_Click(object sender, RoutedEventArgs e)
+		{
+			List<BlamFont> fonts = null;
+			string filename = "";
+			bool skipdialog = false;
+			switch ((string)((MenuItem)sender).Tag)
+			{
+				case "package":
 					{
-						var existingchar = package.Fonts[fontslist.SelectedIndex].FindCharacter(package2.Fonts[fontindex].Characters[i].CharCode);
+						var res = OpenAndLoadPackage();
+						if (res == null)
+							return;
 
-						if (existingchar != -1)
-							package.Fonts[fontslist.SelectedIndex].Characters[existingchar].Data = package2.Fonts[fontindex].Characters[i].Data;
-						else
-							package.Fonts[fontslist.SelectedIndex].Characters.Add(package2.Fonts[fontindex].Characters[i]);
+						filename = res.Item1;
+						fonts = res.Item3;
 					}
+					break;
+				case "table":
+					{
+						var res = OpenAndLoadTable();
+						if (res == null)
+							return;
 
-				package.Fonts[fontslist.SelectedIndex].SortCharacters();
+						filename = res.Item1;
+						fonts = res.Item3;
+					}
+					break;
+				case "loose":
+					{
+						var res = OpenAndImportLooseFonts();
+						if (res == null)
+							return;
 
-				if ((bool)HOinfo.IsChecked)
-					UpdateFontInfo(package2.Fonts[fontindex].AscendHeight, package2.Fonts[fontindex].DescendHeight, package2.Fonts[fontindex].LeadHeight, package2.Fonts[fontindex].LeadWidth);
+						skipdialog = true;
+						fonts = res;
+					}
+					break;
+				case "cache":
+					{
+						var res = OpenAndImportCacheFonts();
+						if (res == null)
+							return;
 
-				UpdateFontDisplay();
-
-				WriteLog("Characters successfully copied from font \"" + package2.Fonts[fontindex].Name + "\" in package \"" + ofd.SafeFileName + "\".");
-				package2 = new FontPackage();
+						filename = res.Item1;
+						fonts = res.Item2;
+					}
+					break;
+				default:
+					throw new NotImplementedException();
 			}
 
-		}
-
-		private void btnHFix_Click(object sender, RoutedEventArgs e)
-		{
-			if (fontslist.SelectedIndex == -1)
-				return;
-
-			short height = 0;
-
-			try
+			if (skipdialog)
 			{
-				height = short.Parse(fontAHeight.Text);
-			}
-			catch
-			{
-				WriteLog("Height update failed: Could not parse height.");
-				return;
-			}
-
-			for (int i = 0; i < package.Fonts[fontslist.SelectedIndex].Characters.Count; i++)
-				package.Fonts[fontslist.SelectedIndex].Characters[i].Data.originy = (ushort)height;
-
-			UpdateFontDisplay();
-		}
-
-		private void pcgetfonts_Click(object sender, RoutedEventArgs e)
-		{
-			System.Drawing.Text.InstalledFontCollection pcfonts = new System.Drawing.Text.InstalledFontCollection();
-
-			for (int i = 0; i < pcfonts.Families.Count(); i++)
-			{
-				pcfontlist.Items.Add(pcfonts.Families[i].Name);
-			}
-
-			pcfontlist.SelectedIndex = 0;
-		}
-
-		private void pcimport_Click(object sender, RoutedEventArgs e)
-		{
-			ushort startchar = ParseChar("Copy", HOstart.Text);
-			if (startchar == 0xFFFF)
-				return;
-
-			ushort endchar = ParseChar("Copy", HOend.Text);
-			if (endchar == 0xFFFF)
-				return;
-
-			if (startchar > endchar)
-			{
-				WriteLog("Import failed: Invalid character range.");
-				return;
-			}
-
-			if (pcsize.Text.Length == 0)
-			{
-				WriteLog("Import failed: Invalid size entered (Box is empty)");
-				return;
-			}
-
-			float fontsize = 8;
-			float charoffset = 0;
-
-			try
-			{
-				fontsize = float.Parse(pcsize.Text);
-			}
-			catch
-			{
-				WriteLog("Import failed: Invalid size entered (Could not parse)");
-				return;
-			}
-
-			try
-			{
-				charoffset = float.Parse(pcoffset.Text);
-			}
-			catch
-			{
-				WriteLog("Import failed: Invalid ofset entered (Could not parse)");
-				return;
-			}
-
-			System.Drawing.FontStyle fontparams = System.Drawing.FontStyle.Regular;
-			if ((bool)pcbold.IsChecked) fontparams = System.Drawing.FontStyle.Bold;
-
-			Font importfont = new Font(pcfontlist.SelectedValue.ToString(), fontsize, fontparams);
-
-			for (ushort i = startchar; i <= endchar; i++)
-			{
-				int existindex = package.Fonts[fontslist.SelectedIndex].Characters.FindIndex(x => x.CharCode == i);
-
-				if (existindex != -1)
-				{
-					System.Drawing.Image newpic = BitmapFromFont(importfont, charoffset, ((char)i).ToString());
-					if (newpic == null) continue;
-					if (newpic.Width == 1) continue;
-					package.AddCustomCharacter((ushort)i, fontslist.SelectedIndex, newpic, (CharTint)tintEnum.SelectedIndex, true);
-
-					newpic.Dispose();
-				}
-			}
-
-			UpdateFontDisplay();
-		}
-		#endregion
-		#endregion
-
-		#region batch tab controls
-
-		private void btnOrder_Click(object sender, RoutedEventArgs e)
-		{
-			foreach (OrderItem item in orderlist.SelectedItems)
-			{
-				package.OrderList[item.OrderIndex] = orderlistfonts.SelectedIndex - 1;
-			}
-
-			UpdateOrderDisplay();
-		}
-
-		private void btnAddBat_Click(object sender, RoutedEventArgs e)
-		{
-			UInt16 char2add = ParseChar("Batch add", newCharBat.Text);
-			if (char2add == 0xFFFF)
-				return;
-
-			var path = OpenImage();
-			if (path != null)
-			{
-				System.Drawing.Image newpic = System.Drawing.Image.FromFile(path);
-
-				for (int i = 0; i < package.Fonts.Count; i++)
-					package.AddCustomCharacter(char2add, i, newpic, (CharTint)tintEnum.SelectedIndex, (bool)chkCrop.IsChecked);
-
-				newpic.Dispose();
-				UpdateFontDisplay();
-
-				WriteLog("Character " + char2add + " was successfully added from " + System.IO.Path.GetFileName(path) + " to every font.");
-				newCharBat.Text = "";
-				tabz.SelectedIndex = 0;
-			}
-		}
-
-		private void btndeleteBat_Click(object sender, RoutedEventArgs e)
-		{
-			ushort char2delete = ParseChar("Batch remove", deleteBat.Text);
-			if (char2delete == 0xFFFF)
-				return;
-
-			if (MessageBox.Show("You sure you wanna do this? This is worse than the other one.", "Batch Delete Character", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
-			{
-				for (int i = 0; i < package.Fonts.Count; i++)
-				{
-					var index = package.Fonts[i].FindCharacter(char2delete);
-
-					if (index != -1)
-						package.Fonts[i].Characters.RemoveAt(index);
-				}
-
-				UpdateFontDisplay();
-
-				WriteLog("Character " + char2delete.ToString("X4") + " was successfully removed from any applicable fonts!");
-
-				deleteBat.Text = "";
-
-				tabz.SelectedIndex = 0;
-			}
-		}
-
-		#endregion
-
-		#region control events
-		private void fontslist_SelectionChanged(object sender, SelectionChangedEventArgs e)
-		{
-			if (fontslist.SelectedIndex != -1)
-			{				
-				btnAdd.IsEnabled = true;
-				btnABC.IsEnabled = true;
-				btnFontUpdate.IsEnabled = true;
-				HObtn.IsEnabled = true;
-				btnHFix.IsEnabled = true;
-				pcimport.IsEnabled = true;
-
-				UpdateFontDisplay();
+				CopyCollection(fonts);
+				MessageBox.Show("Successfully imported " + fonts.Count + " font files.");
 			}
 			else
 			{
-				btnAdd.IsEnabled = false;
-				btnABC.IsEnabled = false;
-				btnFontUpdate.IsEnabled = false;
-				HObtn.IsEnabled = false;
-				btnHFix.IsEnabled = false;
-				pcimport.IsEnabled = false;
-				lstChars.Items.Clear();
+				string shortname = Path.GetFileName(filename);
+				FontImport importer = new FontImport(fonts, shortname);
+				importer.ShowDialog();
 
-				fontAHeight.Text = "";
-				fontDHeight.Text = "";
-				fontLHeight.Text = "";
-				fontLWidth.Text = "";
+				if (importer.DialogResult == false)
+				{
+					fonts = null;
+					importer = null;
+					return;
+				}
+				
+				CopyCollection(importer.SelectedFonts);
+
+				MessageBox.Show("Successfully imported " + importer.SelectedFonts.Count + " fonts from \"" + shortname + "\".");
+				importer = null;
+			}
+
+			fonts = null;
+		}
+
+		private void PCImport_Click(object sender, RoutedEventArgs e)
+		{
+			if (fc != null)
+			{
+				fc.Focus();
+				return;
 			}
 				
-		}
-
-		private void lstChars_SelectionChanged(object sender, SelectionChangedEventArgs e)
-		{
-			if (lstChars.SelectedIndex != -1)
-			{
-				btnReplace.IsEnabled = true;
-				btnExtract.IsEnabled = true;
-				btnDelete.IsEnabled = true;
-				btnCharUpdate.IsEnabled = true;
-
-				charWidth.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.dispWidth.ToString();
-				charOriginX.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.originx.ToString();
-				charOriginY.Text = package.Fonts[fontslist.SelectedIndex].Characters[IndexFromSelectedItem()].Data.originy.ToString();
-				
-			}
-			else
-			{
-				btnReplace.IsEnabled = false;
-				btnExtract.IsEnabled = false;
-				btnDelete.IsEnabled = false;
-				btnCharUpdate.IsEnabled = false;
-
-				charWidth.Text = "";
-				charOriginY.Text = "";
-				charOriginX.Text = "";
-			}
-		}
-
-		private void lstChars_MouseDown(object sender, MouseButtonEventArgs e)
-		{
-			lstChars.UnselectAll();
-		}
-
-		private void CopyUnicode(object sender, MouseButtonEventArgs e)
-		{
-			ListBoxItem item = sender as ListBoxItem;
-
-			System.Windows.Clipboard.SetText(Convert.ToChar(item.Tag).ToString());
-		}
-
-		private void cbInvertBG_Checked(object sender, RoutedEventArgs e)
-		{
-			lstChars.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0xFF, 0xEE, 0xEE, 0xEE));
-		}
-
-		private void cbInvertBG_Unchecked(object sender, RoutedEventArgs e)
-		{
-			lstChars.Background = new SolidColorBrush(System.Windows.Media.Color.FromArgb(0xFF, 0x11, 0x11, 0x11));
+			fc = new FontCreator();
+			fc.Closing += FontCreator_Closing;
+			fc.Owner = this;
+			fc.Show();
 		}
 
 		#endregion
 
-		public class OrderItem
+		private void window_Closing(object sender, CancelEventArgs e)
 		{
-			public int OrderIndex { get; set; }
-			public int OrderValue { get; set; }
-			public string Name { get; set; }
+			CloseEditors();
 		}
+
+		private void FontCreator_Closing(object sender, CancelEventArgs e)
+		{
+			if (fc.Font != null)
+				CopyCollection(fc.Font);
+
+			fc.Closing -= FontCreator_Closing;
+			fc = null;
+		}
+
+		public void ImportCreatedFont(BlamFont font)
+		{
+			if (font != null)
+				CopyCollection(font);
+			fc = null;
+		}
+
+		private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+		{
+			System.Diagnostics.Process.Start(e.Uri.AbsoluteUri);
+		}
+
+		#region font list
+		private void listfonts_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+		{
+			if (listfonts.SelectedIndex == -1)
+				return;
+
+			FontEditor existing = OpenEditors.FirstOrDefault(x => x.Font == Fonts[listfonts.SelectedIndex]);
+			if (existing != null)
+			{
+				existing.Focus();
+				return;
+			}
+			
+			FontEditor editor = new FontEditor(Fonts[listfonts.SelectedIndex]);
+			OpenEditors.Add(editor);
+			editor.Closing += Editor_Closing;
+			editor.Show();
+		}
+
+		private void Editor_Closing(object sender, CancelEventArgs e)
+		{
+			OpenEditors.Remove((FontEditor)sender);
+		}
+
+		private void MenuItem_Click(object sender, RoutedEventArgs e)
+		{
+			RemoveSelectedFont();	
+		}
+
+		private void RemoveSelectedFont()
+		{
+			if (listfonts.SelectedItem == null)
+				return;
+
+			BlamFont f = (BlamFont)listfonts.SelectedItem;
+			var res = MessageBox.Show("This will remove " + f.Name + " from the current collection and cannot be undone. Continue?", "Confirm Remove", MessageBoxButton.OKCancel);
+
+			if (res != MessageBoxResult.OK)
+				return;
+
+			for (int i = 0; i < EngineOrdering.Count; i++)
+			{
+				if (EngineOrdering[i].Font == f)
+					EngineOrdering[i].Font = null;
+			}
+
+			FontEditor editor = OpenEditors.FirstOrDefault(x => x.Font == f);
+			if (editor != null)
+			{
+				editor.Closing -= Editor_Closing;
+				editor.Close();
+				OpenEditors.Remove(editor);
+			}
+
+			Fonts.Remove(f);
+			RefreshFontList();
+			RefreshOrderList();
+		}
+
+		private void listfonts_PreviewKeyDown(object sender, KeyEventArgs e)
+		{
+			if (Keyboard.IsKeyDown(Key.Delete))
+			{
+				RemoveSelectedFont();
+			}
+		}
+		#endregion
+
+		#region font list drag n drop
+		private void listfonts_PreviewMouseMove(object sender, MouseEventArgs e)
+		{
+			if (e.LeftButton == MouseButtonState.Pressed)
+			{
+				if (sender is ListBoxItem)
+				{
+					ListBoxItem item = (ListBoxItem)sender;
+					DragDrop.DoDragDrop(item, item.DataContext, DragDropEffects.Move);
+					item.IsSelected = true;
+				}
+			}
+		}
+
+		private void listfonts_Drop(object sender, DragEventArgs e)
+		{
+			BlamFont dropped = (BlamFont)e.Data.GetData(typeof(BlamFont));
+			if (e.Data.GetDataPresent(typeof(List<BlamCharacter>)) || dropped == null)
+				return;
+
+			int target = -1;
+
+			if (isdropping_reorder)
+			{
+				isdropping_reorder = false;
+				e.Handled = true;
+				return;
+			}
+			target = listfonts.Items.Count - 1;
+			
+			int orig = listfonts.Items.IndexOf(dropped);
+
+			Fonts.Move(orig, target);
+
+			RefreshFontList();
+		}
+
+		private void listfont_Drop(object sender, DragEventArgs e)
+		{
+			BlamFont dropped = (BlamFont)e.Data.GetData(typeof(BlamFont));
+			if (e.Data.GetDataPresent(typeof(List<BlamCharacter>)) || dropped == null)
+				return;
+
+			int target = -1;
+
+			BlamFont send = (BlamFont)((ListBoxItem)sender).DataContext;
+			target = listfonts.Items.IndexOf(send);
+			isdropping_reorder = true;
+
+			int orig = listfonts.Items.IndexOf(dropped);
+
+			Fonts.Move(orig, target);
+
+			RefreshFontList();
+		}
+
+		private void listfonts_PreviewDrag(object sender, DragEventArgs e)
+		{
+			if (e.Data.GetDataPresent(typeof(BlamFont)) && !e.Data.GetDataPresent(typeof(List<BlamCharacter>)))
+				return;
+
+			e.Effects = DragDropEffects.None;
+			e.Handled = true;
+		}
+		#endregion
+
+		#region order list
+		private void listengineorders_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+		{
+			if (listengineorders.SelectedIndex == -1)
+				return;
+			EngineOrdering[listengineorders.SelectedIndex].Font = null;
+			RefreshOrderList();
+		}
+
+		private void listengineorders_KeyDown(object sender, KeyEventArgs e)
+		{
+			if (e.Key == Key.Space)
+			{
+				BlamFont sel = (BlamFont)((ListBoxItem)sender).DataContext;
+
+				if (sel != null)
+				{
+					int ff = Fonts.IndexOf(sel);
+					listfonts.SelectedIndex = ff;
+					
+				}
+				else
+					listfonts.UnselectAll();
+
+			}
+		}
+
+		#endregion
+
+		#region order list drag n drop
+		private void listengineorders_Drop(object sender, DragEventArgs e)
+		{
+			BlamFont dropped = ((BlamFont)e.Data.GetData(typeof(BlamFont)));
+			if (e.Data.GetDataPresent(typeof(List<BlamCharacter>)) || dropped == null)
+				return;
+
+			int target = EngineOrdering.IndexOf((EngineOrderItem)((ListBoxItem)sender).DataContext);
+
+			EngineOrdering[target].Font = dropped;
+
+			RefreshOrderList();
+		}
+
+		#endregion
+
 	}
 }
 

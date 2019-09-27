@@ -35,7 +35,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup>
-    <ApplicationIcon>icon.ico</ApplicationIcon>
+    <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -60,16 +60,63 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="Dialogs\FontImport.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\FontTablePickGame.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\UnicodeInput.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Dialogs\ListDialog.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="FontCreator.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="FontEditor.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
-    <Compile Include="abcFile.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="FontClasses.cs" />
+    <Compile Include="Classes\BlamFont.cs" />
+    <Compile Include="Classes\BlamCharacter.cs" />
+    <Compile Include="Classes\CharacterTools.cs" />
+    <Compile Include="Classes\TableIO.cs" />
+    <Compile Include="Classes\TagIO.cs" />
+    <Compile Include="Classes\PackageIO.cs" />
+    <Compile Include="Classes\Misc.cs" />
+    <Compile Include="Dialogs\FontImport.xaml.cs">
+      <DependentUpon>FontImport.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\FontTablePickGame.xaml.cs">
+      <DependentUpon>FontTablePickGame.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\UnicodeInput.xaml.cs">
+      <DependentUpon>UnicodeInput.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Dialogs\ListDialog.xaml.cs">
+      <DependentUpon>ListDialog.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="FontCreator.xaml.cs">
+      <DependentUpon>FontCreator.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="FontEditor.xaml.cs">
+      <DependentUpon>FontEditor.xaml</DependentUpon>
+    </Compile>
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -103,7 +150,23 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <Resource Include="icon.ico" />
+    <Resource Include="Resources\icon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <Resource Include="Resources\dtile.png" />
+    <Resource Include="Resources\ltile.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.6">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.6 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

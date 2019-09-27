@@ -4,235 +4,285 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager"
-        mc:Ignorable="d"
-        Title="Font Packager v1.5" Height="600" Width="680" MinHeight="400" MinWidth="600" Background="LightGray" UseLayoutRounding="True">
+		xmlns:cl="clr-namespace:FontPackager.Classes"
+        mc:Ignorable="d" x:Name="window" Icon=".\Resources\icon.ico" Closing="window_Closing"
+        Title="Font Packager" Background="LightGray" Height="400" Width="500" MinHeight="300" MinWidth="400" UseLayoutRounding="True">
+	<Window.Resources>
+		<local:NullOrderFontConverter x:Key="nullfontconv" />
+	</Window.Resources>
 	<Grid>
 		<Grid.RowDefinitions>
+			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
-			<RowDefinition Height="100"/>
+			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
-		<Grid Height="22" VerticalAlignment="Top" Margin="4,4,0,0">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="32" />
-				<ColumnDefinition Width="*"/>
-			</Grid.ColumnDefinitions>
-			<Menu Grid.Column="0" Height="22">
+
+		<Grid>
+			<Menu Height="22">
 				<MenuItem Header="File" >
-					<MenuItem Header="Open File..." Click="btnOpenPkg_Click" ToolTip="Open a font_package, H2 list, or single H2 font."/>
-					<MenuItem Header="Open Folder... (H2)" Click="btnOpenFold_Click" ToolTip="Open an entire H2 fonts folder. (May be slow)"/>
+					<MenuItem Header="New Collection" Click="btnNew_Click" ToolTip="Closes any open fonts and creates a new collection." />
+
+					<MenuItem Header="Open Collection">
+						<MenuItem Header="Font Package..." Tag="package" Click="btnOpen_Click" ToolTip="Open a font_package.bin file."/>
+						<MenuItem Header="Font Table..." Tag="table" Click="btnOpen_Click" ToolTip="Open a font_table.txt file."/>
+					</MenuItem>
 					<Separator />
-					<MenuItem x:Name="btnSavepkg" Header="Save Changes" IsEnabled="False" Click="btnSavepkg_Click" ToolTip="Save package/All loaded fonts"/>
-					<MenuItem x:Name="btnSavefile" Header="Save Current (H2)" IsEnabled="False" Click="btnSavefile_Click" ToolTip="Save only the currently selected font."/>
+					<MenuItem x:Name="menuSaveAs" Header="Save As Target Format..." IsEnabled="False" Click="btnSave_Click" />
 				</MenuItem>
+				<MenuItem x:Name="menuTools" Header="Tools" IsEnabled="False">
+					<MenuItem Header="Convert System Font..." Click="PCImport_Click" ToolTip="Create a new font using a font installed on your PC."/>
+
+					<MenuItem Header="Import">
+						<MenuItem Header="Font Package Fonts..." Tag="package" Click="btnImport_Click" ToolTip="Open a font_package.bin file to select fonts from."/>
+						<MenuItem Header="Font Table Fonts..." Tag="table" Click="btnImport_Click" ToolTip="Open a font_table.txt file to select fonts from."/>
+						<MenuItem Header="Loose Font(s)..." Tag="loose" Click="btnImport_Click" ToolTip="Import one or more loose H2 font files."/>
+						<MenuItem Header="Cache File Fonts..." Tag="cache" Click="btnImport_Click" ToolTip="Open an Xbox Halo CE format cache file to select fonts from."/>
+					</MenuItem>
+				</MenuItem>
+
 			</Menu>
-			<TextBlock x:Name="inputpkgpath" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right" Margin="4,0,112,0"/>
 		</Grid>
-		<TabControl x:Name="tabz" VerticalAlignment="Stretch" Grid.Row="0" Margin="4,4,4,0">
-			<TabControl.Resources>
-				<Style TargetType="TabPanel">
-					<Setter Property="HorizontalAlignment" Value="Right" />
-				</Style>
-			</TabControl.Resources>
-			<TabItem Header="Fonts">
-				<Grid>
-					<Grid.RowDefinitions>
-						<RowDefinition Height="26"/>
-						<RowDefinition Height="26"/>
-						<RowDefinition Height="1*"/>
-						<RowDefinition Height="144"/>
-					</Grid.RowDefinitions>
-					<Grid Margin="4,0,4,0" Grid.Row="0">
-						<Grid.ColumnDefinitions>
-							<ColumnDefinition Width="32" />
-							<ColumnDefinition Width="*" />
-							<ColumnDefinition Width="74" />
-						</Grid.ColumnDefinitions>
-						<TextBlock Text="Font:" VerticalAlignment="Center" Grid.Column="0" />
-						<ComboBox x:Name="fontslist" SelectionChanged="fontslist_SelectionChanged" Height="22" Grid.Column="1"/>
-						<CheckBox x:Name="cbInvertBG" Content="Invert BG" Grid.Column="2" VerticalAlignment="Center" Checked="cbInvertBG_Checked" Unchecked="cbInvertBG_Unchecked" Margin="4,0,0,0"/>
-					</Grid>
-					<StackPanel Orientation="Horizontal" Grid.Row="1">
-						<TextBlock Text="Ascend Height:" VerticalAlignment="Center" Margin="4,0,0,0"/>
-						<TextBox x:Name="fontAHeight" Width="46" MaxLength="2" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
-						<TextBlock Text="Descend Height:" VerticalAlignment="Center" Margin="4,0,0,0"/>
-						<TextBox x:Name="fontDHeight" Width="46" MaxLength="2" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
-						<TextBlock Text="Lead Height:" VerticalAlignment="Center" Margin="4,0,0,0"/>
-						<TextBox x:Name="fontLHeight" Width="46" MaxLength="2" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
-						<TextBlock Text="Lead Width:" VerticalAlignment="Center" Margin="4,0,0,0"/>
-						<TextBox x:Name="fontLWidth" Width="46" MaxLength="2" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
-						<Button x:Name="btnFontUpdate" Height="22" Content="Update" Click="btnFontUpdate_Click" IsEnabled="False" Margin="4,0,0,0"/>
-					</StackPanel>
-					
-					<ListBox x:Name="lstChars" Grid.Row="2" Background="#111" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-									 ScrollViewer.VerticalScrollBarVisibility="Auto" SelectionChanged="lstChars_SelectionChanged" MouseDown="lstChars_MouseDown" Padding="2" Margin="4">
-						<ListBox.ItemsPanel>
-							<ItemsPanelTemplate>
-								<WrapPanel IsItemsHost="True"/>
-							</ItemsPanelTemplate>
-						</ListBox.ItemsPanel>
-					</ListBox>
-					<TabControl Grid.Row="3" Margin="4,0,4,0">
-						<TabItem Header="Character Tools">
-							<StackPanel Margin="4">
-								<StackPanel Orientation="Horizontal">
-									<Button x:Name="btnReplace" Content="Replace Selected..." Click="btnReplace_Click" IsEnabled="False" />
-									<Button x:Name="btnExtract" Content="Extract Selected..." Click="btnExtract_Click" IsEnabled="False" Margin="4,0,0,0"/>
-									<Button x:Name="btnDelete" Content="Delete Selected..." Click="btnDelete_Click" IsEnabled="False" Margin="4,0,0,0"/>
-									
 
-									
-									<!--<CheckBox x:Name="tintCheck" Content="Preserve Colors Of New Image" VerticalAlignment="Center" Margin="4,0,4,0" ToolTip="Slightly tints blacks/whites so it won't be affected by UI/HUD colors."/>-->
-								</StackPanel>
-								<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-									<GroupBox Header="New Character" Padding="4">
-										<StackPanel>
-											<StackPanel Orientation="Horizontal">
-												<TextBlock Text="Unicode: 0x" VerticalAlignment="Center"/>
-												<TextBox x:Name="newChar" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
-											</StackPanel>
-											<Button x:Name="btnAdd" Content="Add Character..." Height="22" Click="btnAdd_Click" IsEnabled="False" Margin="0,4,0,0"/>
-										</StackPanel>
-									</GroupBox>
-									<GroupBox Header="Selected Character" Margin="4,0,0,0" Padding="4">
-										<StackPanel>
-											<StackPanel Orientation="Horizontal">
-												<TextBlock Text="Origin x:" VerticalAlignment="Center" ToolTip="Horizontal offset." />
-												<TextBox x:Name="charOriginX" Width="50" MaxLength="5" Height="22" Margin="9,0,0,0" VerticalContentAlignment="Center" />
+		<Grid Grid.Row="1">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="Auto"/>
+			</Grid.ColumnDefinitions>
 
-												<TextBlock Text="Display Width:" VerticalAlignment="Center" Margin="6,0,0,0" ToolTip="How wide the engine treats this character when drawing text. Less than the actual image will cause overlap."/>
-												<TextBox x:Name="charWidth" Width="50" MaxLength="5" Height="22" Margin="6,0,0,0" VerticalContentAlignment="Center" />
-												
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-												<TextBlock Text="Origin y:" VerticalAlignment="Center" ToolTip="Vertical offset."/>
-												<TextBox x:Name="charOriginY" Width="50" MaxLength="5" Height="22" VerticalContentAlignment="Center" Margin="8,0,0,0" />
-												<Button x:Name="btnCharUpdate" Content="Update" Height="22" Width="134" Click="btnCharUpdate_Click" IsEnabled="False" Margin="4,0,0,0"/>
-											</StackPanel>
-										</StackPanel>
-									</GroupBox>
-									<GroupBox Header="Settings" Margin="4,0,0,0" Padding="4">
-										<StackPanel>
-											<StackPanel Orientation="Horizontal">
-												<TextBlock Text="Tint:" VerticalAlignment="Center" ToolTip="Slightly tint blacks/whites so it won't be affected by UI/HUD colors."/>
-												<ComboBox x:Name="tintEnum" SelectedIndex="0" Margin="4,0,0,0" VerticalAlignment="Center" >
-													<ComboBox.Items>
-														<ComboBoxItem Content="None" />
-														<ComboBoxItem Content="Cool" />
-														<ComboBoxItem Content="Warm" />
-													</ComboBox.Items>
-												</ComboBox>
-											</StackPanel>
+			<TextBlock x:Name="fname" Grid.Column="0" Margin="4,0,4,0" VerticalAlignment="Center"/>
 
-											<CheckBox x:Name="chkCrop" Content="Crop Sides" Margin="0,4,0,0" ToolTip="Crops empty pixels around your source image. Automatically used when importing a PC font."/>
-
-										</StackPanel>
-									</GroupBox>
-									
-
-								</StackPanel>
+			<StackPanel Orientation="Horizontal" Grid.Column="1" Margin="4,2,4,0">
+				<TextBlock Text="Target Format:" VerticalAlignment="Center"/>
+				<ComboBox x:Name="cmbFmt" Width="140" Margin="4,0,0,0" SelectedIndex="3"
+						  ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=SelectedItem.ToolTip}">
+					<ComboBoxItem Content="Font Table (H2X)">
+						<ComboBoxItem.Tag>
+							<cl:FileFormat>H2X</cl:FileFormat>
+						</ComboBoxItem.Tag>
+						<ComboBoxItem.ToolTip>
+							<StackPanel>
+								<TextBlock>Halo 2 Xbox</TextBlock>
+								<TextBlock/>
+								<TextBlock>Rules:</TextBlock>
+								<TextBlock>Maximum 12 fonts.</TextBlock>
+								<TextBlock>Maximum character resolution of N/A.</TextBlock>
+								<TextBlock>Decompressed character size limit of 0x1000 bytes.</TextBlock>
 							</StackPanel>
-						</TabItem>
-						
-						<TabItem Header="Font Tools">
-							<StackPanel Margin="4">
-								<StackPanel Orientation="Horizontal">
-									<Button x:Name="btnABC" Height="22" Content="Import .abc File" Click="btnABC_Click" IsEnabled="False" ToolTip="Imports characters from the SDK tool FontMaker. (TGA must be converted to PNG first)"/>
-									<Button x:Name="btnHFix" Content="Update Line Heights" Click="btnHFix_Click" Margin="4,0,0,0" IsEnabled="False" ToolTip="Updates the y origin of every character to match the font's ascend height."/>
-									
-									<TextBlock Text="Range Start Char: 0x" VerticalAlignment="Center" Margin="4,0,0,0" />
-									<TextBox x:Name="HOstart" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
-									<TextBlock Text="End Char: 0x" VerticalAlignment="Center" Margin="4,0,0,0" />
-									<TextBox x:Name="HOend" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
-								</StackPanel>
-								<StackPanel Orientation="Horizontal">
-									<GroupBox Header="Copy Range From Other Package" Margin="0,4,0,0" Padding="4">
-										<StackPanel>
-											<StackPanel Orientation="Horizontal" >
-												<TextBlock Text="Font Index:" VerticalAlignment="Center"/>
-												<TextBox x:Name="HOfont" Width="30" MaxLength="2" Height="22" VerticalContentAlignment="Center"  Margin="10,0,0,0"/>
-												<CheckBox x:Name="HOinfo" Content="Copy Header" Grid.Column="2" VerticalAlignment="Center" Margin="4,0,0,0" ToolTip="Copies the font head values along with the characters."/>
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-												<Button x:Name="HObtn" Height="22" Width="196" Content="Open..." Click="HOCopy" IsEnabled="False"/>
-											</StackPanel>
-										</StackPanel>
-									</GroupBox>
-									<GroupBox Header="Import Range From PC Font" Margin="0,4,0,0" Padding="4">
-										<StackPanel>
-											<StackPanel Orientation="Horizontal" >
-												<Button x:Name="pcgetfonts" Content="Get" Height="22" Click="pcgetfonts_Click"/>
-												<ComboBox x:Name="pcfontlist" Width="227" Margin="4,0,0,0"/>
-												
-											</StackPanel>
-											<StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-												<TextBlock Text="Size:" VerticalAlignment="Center"/>
-												<TextBox x:Name="pcsize" Width="30" MaxLength="3" Height="22" VerticalContentAlignment="Center" Margin="6,0,0,0"/>
-												<ToggleButton x:Name="pcbold" Content="B" Width="16" FontWeight="Bold" Margin="4,0,0,0" />
-												<TextBlock Text="V Offset:" VerticalAlignment="Center" Margin="4,0,0,0" ToolTip="Adjusts the vertical offset of the added characters to help line things up ingame. Test with a small range to get a good value. Decimal points are allowed."/>
-												<TextBox x:Name="pcoffset" Text="-2" Width="50" Height="22" VerticalContentAlignment="Center" Margin="4,0,0,0"/>
-												<Button x:Name="pcimport" Height="22" Width="69" Content="Import" Click="pcimport_Click" IsEnabled="False" Margin="4,0,0,0"/>
-											</StackPanel>
-										</StackPanel>
-									</GroupBox>
-								</StackPanel>
+						</ComboBoxItem.ToolTip>
+					</ComboBoxItem>
+					<ComboBoxItem Content="Font Table (H2V)">
+						<ComboBoxItem.Tag>
+							<cl:FileFormat>H2V</cl:FileFormat>
+						</ComboBoxItem.Tag>
+						<ComboBoxItem.ToolTip>
+							<StackPanel>
+								<TextBlock>Halo 2 Vista</TextBlock>
+								<TextBlock/>
+								<TextBlock>Rules:</TextBlock>
+								<TextBlock>Maximum 12 fonts.</TextBlock>
+								<TextBlock>Maximum character resolution of N/A.</TextBlock>
+								<TextBlock>Decompressed character size limit of 0x8000 bytes.</TextBlock>
 							</StackPanel>
-						</TabItem>
-					</TabControl>
-				</Grid>
-			</TabItem>
-			<TabItem Header="Package">
-				<StackPanel Margin="4">
-					<GroupBox Header="Engine Ordering"  Padding="4" Height="200">
-						<Grid>
+						</ComboBoxItem.ToolTip>
+					</ComboBoxItem>
+					<ComboBoxItem Content="Font Table (H3B)">
+						<ComboBoxItem.Tag>
+							<cl:FileFormat>H3B</cl:FileFormat>
+						</ComboBoxItem.Tag>
+						<ComboBoxItem.ToolTip>
+							<StackPanel>
+								<TextBlock>Halo 3 Beta</TextBlock>
+								<TextBlock/>
+								<TextBlock>Rules:</TextBlock>
+								<TextBlock>Maximum 12 fonts.</TextBlock>
+								<TextBlock>Maximum character resolution of 256x56.</TextBlock>
+							</StackPanel>
+						</ComboBoxItem.ToolTip>
+					</ComboBoxItem>
+					<ComboBoxItem Content="Package (Original)">
+						<ComboBoxItem.Tag>
+							<cl:FileFormat>Package</cl:FileFormat>
+						</ComboBoxItem.Tag>
+						<ComboBoxItem.ToolTip>
+							<StackPanel>
+								<TextBlock>Halo 3, Halo ODST, Halo Reach, Halo Online</TextBlock>
+								<TextBlock/>
+								<TextBlock>Rules:</TextBlock>
+								<TextBlock>Maximum 16 fonts/orders.</TextBlock>
+								<TextBlock>Maximum character resolution of 256x64.</TextBlock>
+								<TextBlock>Compressed character size limit of ~0x8000 bytes.</TextBlock>
+							</StackPanel>
+						</ComboBoxItem.ToolTip>
+					</ComboBoxItem>
+					<ComboBoxItem Content="Package (H4B)">
+						<ComboBoxItem.Tag>
+							<cl:FileFormat>H4B</cl:FileFormat>
+						</ComboBoxItem.Tag>
+						<ComboBoxItem.ToolTip>
+							<StackPanel>
+								<TextBlock>Halo 4 Beta</TextBlock>
+								<TextBlock/>
+								<TextBlock>Rules:</TextBlock>
+								<TextBlock>Maximum 64 fonts/orders.</TextBlock>
+								<TextBlock>Maximum character resolution of 256x64.</TextBlock>
+								<TextBlock>Compressed character size limit of ~0x8000 bytes.</TextBlock>
+							</StackPanel>
+						</ComboBoxItem.ToolTip>
+					</ComboBoxItem>
+					<ComboBoxItem Content="Package (H4/H5)">
+						<ComboBoxItem.Tag>
+							<cl:FileFormat>H4</cl:FileFormat>
+						</ComboBoxItem.Tag>
+						<ComboBoxItem.ToolTip>
+							<StackPanel>
+								<TextBlock>Halo 4, Halo 5 Forge</TextBlock>
+								<TextBlock/>
+								<TextBlock>Rules:</TextBlock>
+								<TextBlock>Maximum 64 fonts/orders.</TextBlock>
+								<TextBlock>Maximum character resolution of 256x64.</TextBlock>
+								<TextBlock>Compressed character size limit of ~0xC000 bytes.</TextBlock>
+							</StackPanel>
+						</ComboBoxItem.ToolTip>
+					</ComboBoxItem>
+					<ComboBoxItem Content="Package (MCC)">
+						<ComboBoxItem.Tag>
+							<cl:FileFormat>MCC</cl:FileFormat>
+						</ComboBoxItem.Tag>
+						<ComboBoxItem.ToolTip>
+							<StackPanel>
+								<TextBlock>Halo Reach in MCC</TextBlock>
+								<TextBlock/>
+								<TextBlock>Rules:</TextBlock>
+								<TextBlock>Maximum 64 fonts/orders.</TextBlock>
+								<TextBlock>Maximum character resolution of 768x512.</TextBlock>
+								<TextBlock>Decompressed character size limit of 0x100000 bytes.</TextBlock>
+								<TextBlock>Compressed character size limit of ~0xC000 bytes.</TextBlock>
+							</StackPanel>
+						</ComboBoxItem.ToolTip>
+					</ComboBoxItem>
+				</ComboBox>
+			</StackPanel>
+		</Grid>
+
+
+		<Grid Grid.Row="2" Margin="4">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition/>
+				<ColumnDefinition/>
+			</Grid.ColumnDefinitions>
+
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+			</Grid.RowDefinitions>
+			<TextBlock Text="Fonts:" Grid.Row="0" Grid.Column="0" Margin="4,0,0,0"/>
+			<TextBlock Text="{Binding ElementName=listfonts, Path=Items.Count, StringFormat={}{0:D}}" HorizontalAlignment="Right" Margin="0,0,4,0" />
+			<TextBlock Text="Engine Order:" Grid.Row="0" Grid.Column="1" Margin="4,0,0,0"
+					   ToolTip="Engine Order is how the games reference fonts internally. Fonts can be used in multiple indexes." />
+
+			<ListBox x:Name="listfonts" Grid.Row="1" Grid.Column="0" Margin="0,0,2,0" HorizontalContentAlignment="Stretch" SelectionMode="Single" AllowDrop="True" Drop="listfonts_Drop"
+					  MouseDoubleClick="listfonts_MouseDoubleClick" PreviewDragOver="listfonts_PreviewDrag" PreviewKeyDown="listfonts_PreviewKeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+					 PreviewDragEnter="listfonts_PreviewDrag" PreviewDragLeave="listfonts_PreviewDrag">
+				<ListBox.ItemContainerStyle>
+					<Style TargetType="ListBoxItem">
+						<EventSetter Event="PreviewMouseMove" Handler="listfonts_PreviewMouseMove" />
+						<EventSetter Event="Drop" Handler="listfont_Drop" />
+						<EventSetter Event="PreviewDragEnter" Handler="listfonts_PreviewDrag"/>
+						<EventSetter Event="PreviewDragLeave" Handler="listfonts_PreviewDrag"/>
+					</Style>
+				</ListBox.ItemContainerStyle>
+				<ListBox.ItemTemplate>
+					<DataTemplate DataType="{x:Type cl:BlamFont}">
+						<Grid Margin="4,0,4,0">
+							<Grid.ToolTip>
+								<StackPanel>
+									<TextBlock Text="{Binding Name, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
+									<TextBlock/>
+									<TextBlock>Kerning Pairs: <Run Text="{Binding KerningPairs.Count, Mode=OneWay, StringFormat={}{0:D}}"/></TextBlock>
+									<TextBlock Text="Double-Click to open the editor, or drag to reorder." />
+								</StackPanel>
+							</Grid.ToolTip>
+							<Grid.ContextMenu>
+								<ContextMenu>
+									<MenuItem Header="Remove Font" Click="MenuItem_Click"/>
+								</ContextMenu>
+							</Grid.ContextMenu>
+
 							<Grid.ColumnDefinitions>
 								<ColumnDefinition Width="*"/>
-								<ColumnDefinition Width="*"/>
+								<ColumnDefinition Width="Auto"/>
 							</Grid.ColumnDefinitions>
-							<ListBox x:Name="orderlist" Grid.Column="0" SelectionMode="Extended" IsEnabled="False">
-								<ListBox.ItemTemplate>
-									<DataTemplate>
-										<StackPanel Orientation="Horizontal">
-											<TextBlock Text="{Binding OrderIndex}" FontWeight="Bold" Width="20"/>
-											<TextBlock Text="{Binding Name}" Margin="4,0,0,0"/>
-										</StackPanel>
-									</DataTemplate>
-								</ListBox.ItemTemplate>
-							</ListBox>
 
-							<StackPanel Margin="4,0,0,0" Grid.Column="1">
-								<Button x:Name="btnOrder" Content="Update Selected" IsEnabled="False" Click="btnOrder_Click"/>
-								<TextBlock Text="New Font:" Margin="0,12,0,0"/>
-								<ComboBox x:Name="orderlistfonts" IsEnabled="False"/>
-
-								<TextBlock x:Name="txtOrderDesc" Text="Engine ordering is how the game actually orders the fonts for purposes like tags. Fonts can be referenced multiple times." TextWrapping="Wrap" Margin="0,12,0,0" VerticalAlignment="Bottom"/>
-								<TextBlock x:Name="txtOrderHTwo" Visibility="Collapsed" Text="In Halo 2 the ordering is dictated by the font_table.txt files. Rather than putting a text editor here or something, I'll just say open that file in notepad." TextWrapping="Wrap" Margin="0,12,0,0" VerticalAlignment="Bottom"/>
-							</StackPanel>
-
+							<TextBlock Text="{Binding Name, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" Grid.Column="0" TextTrimming="CharacterEllipsis"/>
+							<TextBlock Text="{Binding CharacterCount, Mode=OneWay, StringFormat={}{0:D}}" Grid.Column="1" Margin="4,0,0,0" HorizontalAlignment="Right"/>
 
 						</Grid>
-						
+					</DataTemplate>
+				</ListBox.ItemTemplate>
 
+			</ListBox>
 
-					</GroupBox>
-					<GroupBox Header="Add/Replace Character To All Fonts"  Padding="4">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock Text="Unicode: 0x" VerticalAlignment="Center"/>
-							<TextBox x:Name="newCharBat" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
-							<Button x:Name="btnAddBat" Content="Add Character..." Height="22" Width="100" Click="btnAddBat_Click" IsEnabled="False" Margin="4,0,0,0"/>
-							<TextBlock Text="(Tint/Crop from the Fonts tab also applies.)" VerticalAlignment="Center" Margin="4,0,0,0"/>
-						</StackPanel>
-					</GroupBox>
-					<GroupBox Header="Remove Character From All Fonts" Margin="0,4,0,0" Padding="4">
-						<StackPanel Orientation="Horizontal">
-							<TextBlock Text="Unicode: 0x" VerticalAlignment="Center"/>
-							<TextBox x:Name="deleteBat" Width="50" MaxLength="4" Height="22" VerticalContentAlignment="Center" Margin="2,0,0,0"/>
-							<Button x:Name="btndeleteBat" Content="Delete Character" Height="22" Width="100" Click="btndeleteBat_Click" IsEnabled="False" Margin="4,0,0,0"/>
-						</StackPanel>
-					</GroupBox>
-				</StackPanel>
-			</TabItem>
-		</TabControl>
-		<TextBox x:Name="logbox" IsReadOnly="True" Grid.Row="1" Margin="4" VerticalScrollBarVisibility="Visible"/>
+			<ListBox x:Name="listengineorders" Grid.Row="1" Grid.Column="1" Margin="2,0,0,0" PreviewDragOver="listfonts_PreviewDrag" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AlternationCount="64"
+					 PreviewDragEnter="listfonts_PreviewDrag" PreviewDragLeave="listfonts_PreviewDrag">
+				<ListBox.ItemContainerStyle>
+					<Style TargetType="ListBoxItem">
+						<EventSetter Event="Drop" Handler="listengineorders_Drop" />
+						<EventSetter Event="MouseDoubleClick" Handler="listengineorders_MouseDoubleClick" />
+						<EventSetter Event="KeyDown" Handler="listengineorders_KeyDown" />
+						<EventSetter Event="PreviewDragEnter" Handler="listfonts_PreviewDrag"/>
+						<EventSetter Event="PreviewDragLeave" Handler="listfonts_PreviewDrag"/>
+						<Setter Property="AllowDrop" Value="True"/>
+					</Style>
+				</ListBox.ItemContainerStyle>
+				<ListBox.ItemsPanel>
+					<ItemsPanelTemplate>
+						<StackPanel VirtualizingPanel.IsVirtualizing="False"/>
+					</ItemsPanelTemplate>
+				</ListBox.ItemsPanel>
+				<ListBox.ItemTemplate>
+					<DataTemplate DataType="{x:Type cl:EngineOrderItem}">
+						<Grid>
+							<Grid.ToolTip>
+								<StackPanel>
+									<StackPanel x:Name="tooltipname">
+										<TextBlock Text="{Binding Font.Name, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, FallbackValue=null}" />
+										<TextBlock/>
+									</StackPanel>
+									<TextBlock Text="Drag and drop from the font list to change values, or Double-Click to clear." />
+									<TextBlock Text="Select an entry and press Space to highlight the font in the font list." />
+								</StackPanel>
+							</Grid.ToolTip>
+							<Grid.ColumnDefinitions>
+								<ColumnDefinition Width="24"/>
+								<ColumnDefinition Width="*"/>
+							</Grid.ColumnDefinitions>
+
+							<TextBlock Text="{Binding RelativeSource={RelativeSource TemplatedParent}, Path=TemplatedParent.(ItemsControl.AlternationIndex)}" Grid.Column="0"/>
+
+							<TextBlock x:Name="label" Text="{Binding Font.Name, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, FallbackValue=null}" Grid.Column="1" TextTrimming="CharacterEllipsis"/>
+						</Grid>
+
+						<DataTemplate.Triggers>
+							<DataTrigger Binding="{Binding ., Converter={StaticResource nullfontconv}}" Value="True">
+								<Setter TargetName="tooltipname" Property="Visibility" Value="Collapsed"/>
+								
+								<Setter TargetName="label" Property="FontStyle" Value="Italic"/>
+								<Setter TargetName="label" Property="Foreground" Value="Gray"/>
+							</DataTrigger>
+						</DataTemplate.Triggers>
+					</DataTemplate>
+				</ListBox.ItemTemplate>
+
+			</ListBox>
+		</Grid>
+
+		<TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4" Grid.Row="4">
+			Font Packager v2 RC1 by Zeddikins.
+			<Hyperlink NavigateUri="https://github.com/Lord-Zedd/FontPackager" RequestNavigate="Hyperlink_RequestNavigate">
+				GitHub
+			</Hyperlink>
+		</TextBlock>
 	</Grid>
 </Window>
 
