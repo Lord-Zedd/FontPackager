@@ -162,12 +162,20 @@ namespace FontPackager.Classes
 					if (bc.Width > 1)
 						for (int i = 0; i < shrunkpixels.Length; i++)
 						{
-							byte run = 0;
-
 							ushort currentpixel = shrunkpixels[i];
 							byte currentalpha = (byte)((currentpixel & 0xF000) >> 12);
 
-							if ((currentpixel & 0xFFF) != (basepixel & 0xFFF) && currentalpha != 0)
+							ushort? nextpixel = 0;
+							byte nextalpha = 0;
+
+							if (i + 1 < shrunkpixels.Length)
+							{
+								nextpixel = shrunkpixels[i + 1];
+								nextalpha = (byte)((nextpixel & 0xF000) >> 12);
+							}
+
+							if ((currentpixel & 0xFFF) != (basepixel & 0xFFF) ||
+								(nextpixel.HasValue && (currentpixel & 0xFFF) != (nextpixel & 0xFFF)))
 							{
 								bw.Write((byte)0);
 								bw.Write((byte)((currentpixel & 0xFF00) >> 8));
@@ -176,71 +184,62 @@ namespace FontPackager.Classes
 								basepixel = currentpixel;
 								continue;
 							}
+
+							byte run = 0;
+
+							if (currentalpha == 0 || currentalpha == 0xF)
+							{
+								while ((i + run) < shrunkpixels.Length && shrunkpixels[i + run] == currentpixel && run < 0x3F)
+									run++;
+							}
+							if (run > 1)
+							{
+								bw.Write((byte)(((currentalpha & 4) << 4) | run));
+								i += run - 1;
+								continue;
+							}
+
+							run = 0;
+							byte codeL = 0;
+
+							codeL = (byte)((currentalpha & 0xE) << 2);
+							codeL |= 0x80;
+
+							byte codeR = 0;
+
+							if (nextpixel.HasValue)
+							{
+								while ((i + 1 + run) < shrunkpixels.Length && (shrunkpixels[i + 1 + run]) == (nextpixel) && run < 5)
+									run++;
+								if (run > 1 && nextalpha != 0 && nextalpha != 0xF)
+									run = 1;
+							}
+
+							if (run == 0)
+							{
+								bw.Write(codeL);
+								continue;
+							}
+							else if (run == 1)
+							{
+								codeR = (byte)(nextalpha >> 1);
+
+								bw.Write((byte)((codeL | codeR) | 0x40));
+								i += run;
+								continue;
+							}
 							else
 							{
-								if (currentalpha == 0 || currentalpha == 0xF)
-								{
-									while ((i + run) < shrunkpixels.Length && shrunkpixels[i + run] == currentpixel && run < 0x3F)
-										run++;
-								}
-								if (run > 1)
-								{
-									bw.Write((byte)(((currentalpha & 4) << 4) | run));
-									i += run - 1;
-									continue;
-								}
+								if (nextalpha != 0xF)
+									codeR = 4;
+								else if (nextalpha == 0xF && run == 5)
+									run--;
 
-								run = 0;
-								byte codeL = 0;
-
-								codeL = (byte)((currentalpha & 0xE) << 2);
-								codeL |= 0x80;
-
-								byte codeR = 0;
-
-								ushort? nextpixel = 0;
-								byte nextalpha = 0;
-
-								if (i + 1 < shrunkpixels.Length)
-								{
-									nextpixel = shrunkpixels[i + 1];
-									nextalpha = (byte)((nextpixel & 0xF000) >> 12);
-								}
-
-								if (nextpixel.HasValue)
-								{
-									while ((i + 1 + run) < shrunkpixels.Length && (shrunkpixels[i + 1 + run]) == (nextpixel) && run < 5)
-										run++;
-									if (run > 1 && nextalpha != 0 && nextalpha != 0xF)
-										run = 1;
-								}
-
-								if (run == 0)
-								{
-									bw.Write(codeL);
-									continue;
-								}
-								else if (run == 1)
-								{
-									codeR = (byte)(nextalpha >> 1);
-
-									bw.Write((byte)((codeL | codeR) | 0x40));
-									i += run;
-									continue;
-								}
-								else
-								{
-									if (nextalpha != 0xF)
-										codeR = 4;
-									else if (nextalpha == 0xF && run == 5)
-										run--;
-
-									codeR |= (byte)(5 - run);
-								}
-
-								bw.Write((byte)(codeL | codeR));
-								i += run;
+								codeR |= (byte)(5 - run);
 							}
+
+							bw.Write((byte)(codeL | codeR));
+							i += run;
 						}
 					else
 						bw.Write((byte)0x15);
@@ -341,7 +340,7 @@ namespace FontPackager.Classes
 			if (image.Width > ushort.MaxValue || image.Height > ushort.MaxValue || image.PixelFormat != PixelFormat.Format32bppArgb)
 				return null;
 
-			Bitmap workingimage = new Bitmap(image);
+			Bitmap workingimage = (Bitmap)image.Clone();
 			bounds = GetImageBounds(image);
 
 			if (crop)
