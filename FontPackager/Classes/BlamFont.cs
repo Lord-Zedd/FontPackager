@@ -95,13 +95,13 @@ namespace FontPackager.Classes
 		/// <summary>
 		/// Adds the given <see cref="BlamCharacter"/> to the font.
 		/// </summary>
-		/// <param name="fixorigin">If true, will either keep the X/Y Origins values of the replaced character, or set the Y Origin to the font's AscendHeight when adding a new character.</param>
 		public void AddCharacter(BlamCharacter character)
 		{
 			int existingchar = FindCharacter(character.UnicIndex);
 
 			if (existingchar != -1)
 			{
+				character.OriginY = Characters[existingchar].OriginY;
 				Characters[existingchar] = character;
 			}
 			else
