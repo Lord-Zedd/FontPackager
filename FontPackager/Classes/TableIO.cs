@@ -73,7 +73,7 @@ namespace FontPackager.Classes
 						fs.Position = 0x40400 + (i * 0x10);
 
 						int datalength = 0;
-						if (fmt.HasFlag(FileFormat.x64))
+						if (fmt.HasFlag(FileFormat.x64Char))
 						{
 							bc.DisplayWidth = br.ReadUInt32();
 							datalength = br.ReadInt32();
@@ -247,7 +247,7 @@ namespace FontPackager.Classes
 						ims.Position = (bc.UnicIndex * 4);
 						ibw.Write(i);
 
-						if (format.HasFlag(FileFormat.x64))
+						if (format.HasFlag(FileFormat.x64Char))
 						{
 							cbw.Write(bc.DisplayWidth);
 							cbw.Write(bc.CompressedSize);

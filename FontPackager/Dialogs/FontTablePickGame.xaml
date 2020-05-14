@@ -24,11 +24,13 @@
 				<ColumnDefinition Width="*"/>
 				<ColumnDefinition Width="*"/>
 				<ColumnDefinition Width="*"/>
+				<ColumnDefinition Width="*"/>
 			</Grid.ColumnDefinitions>
 
 			<Button Content="Halo 2 Xbox" Grid.Column="0" Tag="h2x" Margin="2,0" Click="Import_Click"/>
 			<Button Content="Halo 2 Vista" Grid.Column="1" Tag="h2v" Margin="2,0" Click="Import_Click"/>
 			<Button Content="Halo 3 Beta" Grid.Column="2" Tag="h3b" Margin="2,0" Click="Import_Click"/>
+			<Button Content="Halo 2 MCC" Grid.Column="3" Tag="h2mcc" Margin="2,0" Click="Import_Click"/>
 
 		</Grid>
 

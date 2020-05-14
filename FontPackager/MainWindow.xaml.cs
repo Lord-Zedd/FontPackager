@@ -157,19 +157,25 @@ namespace FontPackager
 				case FileFormat.H3B:
 					cmbFmt.SelectedIndex = 2;
 					break;
+				case FileFormat.H2MCC:
+					cmbFmt.SelectedIndex = 3;
+					break;
 
 				default:
 				case FileFormat.Package:
-					cmbFmt.SelectedIndex = 3;
-					break;
-				case FileFormat.H4B:
 					cmbFmt.SelectedIndex = 4;
 					break;
-				case FileFormat.H4:
+				case FileFormat.H4B:
 					cmbFmt.SelectedIndex = 5;
 					break;
-				case FileFormat.MCC:
+				case FileFormat.H4:
 					cmbFmt.SelectedIndex = 6;
+					break;
+				case FileFormat.MCC:
+					cmbFmt.SelectedIndex = 7;
+					break;
+				case FileFormat.H2AMCC:
+					cmbFmt.SelectedIndex = 8;
 					break;
 			}
 

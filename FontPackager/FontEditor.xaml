@@ -26,6 +26,7 @@
 					<MenuItem Header="Save H2X Font" Tag="h2x" Click="Save_Click" ToolTip="Saves the open font as a singular font file, using Halo 2 Xbox's validation rules."/>
 					<MenuItem Header="Save H2V Font" Tag="h2v" Click="Save_Click" ToolTip="Saves the open font as a singular font file, using Halo 2 Vista's validation rules."/>
 					<MenuItem Header="Save H3B Font" Tag="h3b" Click="Save_Click" ToolTip="Saves the open font as a singular font file, using Halo 3 Beta's validation rules."/>
+					<MenuItem Header="Save H2MCC Font" Tag="h2mcc" Click="Save_Click" ToolTip="Saves the open font as a singular font file, using Halo 2 MCC's validation rules."/>
 				</MenuItem>
 
 				<MenuItem Header="Options">

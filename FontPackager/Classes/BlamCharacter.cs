@@ -118,58 +118,57 @@ namespace FontPackager.Classes
 			using (StringWriter sw = new StringWriter())
 			{
 				string linebase = UnicIndex.ToString("X4") + ": ";
+
 				if (format.HasFlag(FileFormat.Package))
 				{
-					int calcsize = (format.HasFlag(FileFormat.MCC) ? 0x10 : 0xC);
-					int chunksize = (format.HasFlag(FileFormat.ChunkC) ? 0xC000 : 0x8000);
+					int onechar = (format.HasFlag(FileFormat.x64Char) ? 0x10 : 0xC);
 
-					if (CompressedSize > (chunksize - 8 - calcsize - 4))
+					int chunksize = 0x8000;
+					if (format.HasFlag(FileFormat.ChunkC))
+						chunksize = 0xC000;
+					else if (format.HasFlag(FileFormat.Chunk10))
+						chunksize = 0x10000;
+
+					if (CompressedSize > (chunksize - 8 - onechar - 4))
 						sw.WriteLine(linebase + "Compressed size " + CompressedSize + " is greater than than the package chunk size, " + chunksize.ToString() + ".");
-
-					if (format.HasFlag(FileFormat.ResLimit768x512))
-					{
-						if (Width > 768 || Height > 512)
-							sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 768x512.");
-					}
-					else
-					{
-						if (Width > 256 || Height > 64)
-							sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 256x64.");
-					}
 				}
-				else if (format.HasFlag(FileFormat.Table))
+				else if (format.HasFlag(FileFormat.Table) && CompressedSize > ushort.MaxValue)
+					sw.WriteLine(linebase + "Compressed size " + CompressedSize + " is greater than " + ushort.MaxValue.ToString() + ".");
+				
+
+				int decompressedlimit = int.MaxValue;
+				if (format.HasFlag(FileFormat.PixelLimit4k))
+					decompressedlimit = 0x4000;
+				if (format.HasFlag(FileFormat.PixelLimit20k))
+					decompressedlimit = 0x20000;
+				else if (format.HasFlag(FileFormat.PixelLimit100k))
+					decompressedlimit = 0x100000;
+
+				if (DecompressedSize > decompressedlimit)
+					sw.WriteLine(linebase + "Decompressed size " + DecompressedSize + " is greater than " + decompressedlimit.ToString() + ".");
+
+
+				if (format.HasFlag(FileFormat.ResLimit768x512))
 				{
-					if (CompressedSize > ushort.MaxValue)
-						sw.WriteLine(linebase + "Compressed size " + CompressedSize + " is greater than " + ushort.MaxValue.ToString() + ".");
+					if (Width > 768 || Height > 512)
+						sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 768x512.");
+				}	
+				else if (format.HasFlag(FileFormat.ResLimit256x56))
+				{
+					if (Width > 256 || Height > 56)
+						sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 256x56.");
+				}	
+				else if (Width > 256 || Height > 64)
+					sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 256x64.");
 
-					int decompressedlimit = int.MaxValue;
-					if (format.HasFlag(FileFormat.PixelLimit4k))
-						decompressedlimit = 0x4000;
-					if (format.HasFlag(FileFormat.PixelLimit20k))
-						decompressedlimit = 0x20000;
-					else if (format.HasFlag(FileFormat.PixelLimit100k))
-						decompressedlimit = 0x100000;
 
-					if (DecompressedSize > decompressedlimit)
-						sw.WriteLine(linebase + "Decompressed size " + DecompressedSize + " is greater than " + decompressedlimit.ToString() + ".");
-
-					if (format.HasFlag(FileFormat.ResLimit256x56))
-					{
-						if (Width > 256 || Height > 56)
-							sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 256x56.");
-					}
-				}
-
-				if (format.HasFlag(FileFormat.x64))
+				if (format.HasFlag(FileFormat.x64Char))
 				{
 					if (DisplayWidth > uint.MaxValue)
 						sw.WriteLine(linebase + "Display Width " + DisplayWidth + "is greater than " + uint.MaxValue.ToString() + ".");
-				}
-				else
-				{
-					if (DisplayWidth > ushort.MaxValue)
-						sw.WriteLine(linebase + "Display Width " + DisplayWidth + "is greater than " + ushort.MaxValue.ToString() + ".");
-				}
+				}	
+				else if (DisplayWidth > ushort.MaxValue)
+					sw.WriteLine(linebase + "Display Width " + DisplayWidth + "is greater than " + ushort.MaxValue.ToString() + ".");
 
 				return sw.ToString();
 			}

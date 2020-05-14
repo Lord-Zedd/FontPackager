@@ -33,6 +33,9 @@ namespace FontPackager.Dialogs
 				case "h3b":
 					Game = FileFormat.H3B;
 					break;
+				case "h2mcc":
+					Game = FileFormat.H2MCC;
+					break;
 			}
 
 			DialogResult = true;

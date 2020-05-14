@@ -15,12 +15,15 @@ namespace FontPackager.Classes
 
 		Max64 = 0x10,
 		ChunkC = 0x20,
+		Chunk10 = 0x40,
 
-		x64 = 0x800,
+		x64Head = 0x100,
+		x64Char = 0x200,
 
 		PixelLimit4k = 0x1000,
 		PixelLimit20k = 0x2000,
-		PixelLimit100k = 0x4000,
+		PixelLimit80k = 0x4000,
+		PixelLimit100k = 0x8000,
 
 		ResLimit256x56 = 0x10000,
 		ResLimit768x512 = 0x20000,
@@ -30,7 +33,11 @@ namespace FontPackager.Classes
 		H3B = Table | ResLimit256x56,
 		H4B = Package | Max64,
 		H4 = Package | Max64 | ChunkC,
-		MCC = Package | Max64 | ChunkC | ResLimit768x512 | PixelLimit100k | x64 //temp until moar games
+		MCC = Package | Max64 | ChunkC | ResLimit768x512 | x64Head | x64Char,
+		
+		H2MCC = Table | PixelLimit80k,
+		H2AMCC = Package | Max64 | Chunk10 | ResLimit768x512 | PixelLimit100k | x64Head,
+		
 
 	}
 

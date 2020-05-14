@@ -196,6 +196,9 @@ namespace FontPackager
 				case "h3b":
 					SaveLoose(FileFormat.H3B);
 					break;
+				case "h2mcc":
+					SaveLoose(FileFormat.H2MCC);
+					break;
 			}
 		}
 
