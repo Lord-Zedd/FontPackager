@@ -158,7 +158,7 @@ namespace FontPackager.Classes
 					if (Width > 256 || Height > 56)
 						sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 256x56.");
 				}	
-				else if (Width > 256 || Height > 64)
+				else if (format.HasFlag(FileFormat.Package) && (Width > 256 || Height > 64))
 					sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 256x64.");
 
 
