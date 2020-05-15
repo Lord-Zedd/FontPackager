@@ -308,7 +308,7 @@
 		</Grid>
 
 		<TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4" Grid.Row="4">
-			Font Packager v2.1 by Zeddikins.
+			Font Packager v2.1a by Zeddikins.
 			<Hyperlink NavigateUri="https://github.com/Lord-Zedd/FontPackager" RequestNavigate="Hyperlink_RequestNavigate">
 				GitHub
 			</Hyperlink>
