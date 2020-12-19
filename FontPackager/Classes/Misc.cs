@@ -6,46 +6,12 @@ using System.Windows.Media;
 
 namespace FontPackager.Classes
 {
-	[Flags]
-	public enum FileFormat
-	{
-		Tag = 0x1,
-		Table = 0x2,
-		Package = 0x4,
-
-		Max64 = 0x10,
-		ChunkC = 0x20,
-		Chunk10 = 0x40,
-
-		x64Head = 0x100,
-		x64Char = 0x200,
-
-		PixelLimit4k = 0x1000,
-		PixelLimit20k = 0x2000,
-		PixelLimit80k = 0x4000,
-		PixelLimit100k = 0x8000,
-
-		ResLimit256x56 = 0x10000,
-		ResLimit768x512 = 0x20000,
-
-		H2X = Table | PixelLimit4k,
-		H2V = Table | PixelLimit20k,
-		H3B = Table | ResLimit256x56,
-		H4B = Package | Max64,
-		H4 = Package | Max64 | ChunkC,
-		MCC = Package | Max64 | ChunkC | ResLimit768x512 | x64Head | x64Char,
-		
-		H2MCC = Table | PixelLimit80k,
-		H2AMCC = Package | Max64 | Chunk10 | ResLimit768x512 | PixelLimit100k | x64Head,
-		
-
-	}
-
 	public enum IOError
 	{
 		None = 0,
 		BadVersion = 1,
-		Empty = 2,
+		UnknownBlock = 2,
+		Empty = 3,
 	}
 
 	public enum CharTint

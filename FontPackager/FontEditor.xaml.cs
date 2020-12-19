@@ -188,39 +188,41 @@ namespace FontPackager
 			switch((string)((MenuItem)sender).Tag)
 			{
 				case "h2x":
-					SaveLoose(FileFormat.H2X);
+					SaveLoose(FormatInformation.H2X);
 					break;
 				case "h2v":
-					SaveLoose(FileFormat.H2V);
+					SaveLoose(FormatInformation.H2V);
 					break;
 				case "h3b":
-					SaveLoose(FileFormat.H3B);
+					SaveLoose(FormatInformation.H3B);
 					break;
 				case "h2mcc":
-					SaveLoose(FileFormat.H2MCC);
+					SaveLoose(FormatInformation.H2MCC);
 					break;
 			}
 		}
 
-		private void SaveLoose(FileFormat format)
+		private void SaveLoose(FormatInformation info)
 		{
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog();
-			sfd.RestoreDirectory = true;
-			sfd.Title = "Save Font File";
-			sfd.Filter = "Loose Font (*)|*";
-			sfd.FileName = Font.SanitizedName;
+			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Save Font File",
+				Filter = "Loose Font (*)|*",
+				FileName = Font.SanitizedName
+			};
 			if (!(bool)sfd.ShowDialog())
 				return;
 
-			if (!VerifyFont(format))
+			if (!VerifyFont(info))
 				return;
 
-			TableIO.WriteLooseFile(Font, sfd.FileName, format);
+			TableIO.WriteLooseFile(Font, sfd.FileName, info);
 		}
 
-		public bool VerifyFont(FileFormat format)
+		public bool VerifyFont(FormatInformation info)
 		{
-			string result = Font.Verify(format);
+			string result = Font.Verify(info);
 
 			if (string.IsNullOrEmpty(result))
 				return true;
@@ -378,8 +380,7 @@ namespace FontPackager
 				if (string.IsNullOrEmpty(txt))
 					return;
 
-				short val;
-				bool parsed = short.TryParse(txt, out val);
+				bool parsed = short.TryParse(txt, out short val);
 
 				if (!parsed)
 					return;
@@ -412,8 +413,7 @@ namespace FontPackager
 				if (string.IsNullOrEmpty(txt))
 					return;
 
-				int val;
-				bool parsed = int.TryParse(txt, out val);
+				bool parsed = int.TryParse(txt, out int val);
 
 				if (!parsed)
 					return;
@@ -443,8 +443,7 @@ namespace FontPackager
 				if (string.IsNullOrEmpty(txt) || listchars.SelectedItems.Count == 0)
 					return;
 
-				uint val;
-				bool parsed = uint.TryParse(txt, out val);
+				bool parsed = uint.TryParse(txt, out uint val);
 
 				if (!parsed)
 					return;
@@ -464,8 +463,7 @@ namespace FontPackager
 				if (string.IsNullOrEmpty(txt) || listchars.SelectedItems.Count == 0)
 					return;
 
-				short val;
-				bool parsed = short.TryParse(txt, out val);
+				bool parsed = short.TryParse(txt, out short val);
 
 				if (!parsed)
 					return;
@@ -503,10 +501,12 @@ namespace FontPackager
 
 		private void ExtractChar_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog();
-			sfd.RestoreDirectory = true;
-			sfd.Title = "Save Font Character";
-			sfd.Filter = "PNG Image (*.png)|*.png;|Raw Data (Debug) (*.bin)|*.bin;";
+			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Save Font Character",
+				Filter = "PNG Image (*.png)|*.png;|Raw Data (Debug) (*.bin)|*.bin;"
+			};
 			if (!(bool)sfd.ShowDialog())
 				return;
 
@@ -603,8 +603,7 @@ namespace FontPackager
 			{
 				string filename = Path.GetFileNameWithoutExtension(s);
 
-				ushort unic;
-				bool parsed = ushort.TryParse(filename, NumberStyles.HexNumber, null, out unic);
+				bool parsed = ushort.TryParse(filename, NumberStyles.HexNumber, null, out ushort unic);
 
 				if (!parsed)
 				{
@@ -668,10 +667,12 @@ namespace FontPackager
 		#region char manipulation
 		private static string OpenImage()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
-			ofd.RestoreDirectory = true;
-			ofd.Title = "Select Image";
-			ofd.Filter = "Image Files(*.bmp; *.jpg; *.gif; *.png)| *.bmp; *.jpg; *.gif; *.png; | All files(*.*) | *; ";
+			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Select Image",
+				Filter = "Image Files(*.bmp; *.jpg; *.gif; *.png)| *.bmp; *.jpg; *.gif; *.png; | All files(*.*) | *; "
+			};
 			if ((bool)ofd.ShowDialog())
 				return ofd.FileName;
 			else
@@ -770,13 +771,15 @@ namespace FontPackager
 
 			foreach (BlamCharacter bc in chars)
 			{
-				BlamCharacter bcnew = new BlamCharacter(bc.UnicIndex);
-				bcnew.DisplayWidth = bc.DisplayWidth;
-				bcnew.Height = bc.Height;
-				bcnew.Width = bc.Width;
-				bcnew.OriginX = bc.OriginX;
-				bcnew.OriginY = bc.OriginY;
-				bcnew.CompressedData = new byte[bc.CompressedSize];
+				BlamCharacter bcnew = new BlamCharacter(bc.UnicIndex)
+				{
+					DisplayWidth = bc.DisplayWidth,
+					Height = bc.Height,
+					Width = bc.Width,
+					OriginX = bc.OriginX,
+					OriginY = bc.OriginY,
+					CompressedData = new byte[bc.CompressedSize]
+				};
 
 				Array.Copy(bc.CompressedData, bcnew.CompressedData, bcnew.CompressedSize);
 

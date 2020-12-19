@@ -9,7 +9,7 @@ namespace FontPackager.Dialogs
 	/// </summary>
 	public partial class FontTablePickGame : Window
 	{
-		public FileFormat Game { get; set; }
+		public FormatInformation Game { get; set; }
 
 		public FontTablePickGame()
 		{
@@ -21,20 +21,20 @@ namespace FontPackager.Dialogs
 			switch((string)((Button)sender).Tag)
 			{
 				default:
-					Game = 0;
+					Game = null;
 					DialogResult = false;
 					break;
 				case "h2x":
-					Game = FileFormat.H2X;
+					Game = FormatInformation.H2X;
 					break;
 				case "h2v":
-					Game = FileFormat.H2V;
+					Game = FormatInformation.H2V;
 					break;
 				case "h3b":
-					Game = FileFormat.H3B;
+					Game = FormatInformation.H3B;
 					break;
 				case "h2mcc":
-					Game = FileFormat.H2MCC;
+					Game = FormatInformation.H2MCC;
 					break;
 			}
 

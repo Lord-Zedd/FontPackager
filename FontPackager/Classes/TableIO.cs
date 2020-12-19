@@ -16,9 +16,8 @@ namespace FontPackager.Classes
 		/// Reads an H2-era extensionless font file.
 		/// </summary>
 		/// <param name="path">The path to the file to be read.</param>
-		public static Tuple<IOError, FileFormat, BlamFont> ReadLooseFile(string path)
+		public static Tuple<IOError, BlamFont> ReadLooseFile(string path)
 		{
-			List<int> CharacterPointers = new List<int>();
 			List<BlamCharacter> CharacterEntries = new List<BlamCharacter>();
 
 			using (FileStream fs = new FileStream(path, FileMode.Open))
@@ -27,24 +26,22 @@ namespace FontPackager.Classes
 				{
 					br.BaseStream.Position = 0x200;
 
-					FileFormat fmt = FileFormat.Table;
-
 					var fversion = br.ReadUInt32();
 					if (fversion != FontVersionLoose)
 					{
-						return new Tuple<IOError, FileFormat, BlamFont>
-							(IOError.BadVersion, 0, null);
+						return new Tuple<IOError, BlamFont>
+							(IOError.BadVersion, null);
 					}
 
-					BlamFont font = new BlamFont(Path.GetFileName(path)); //will need updates when we get h2 mcc
+					BlamFont font = new BlamFont(Path.GetFileName(path));
 
 					font.AscendHeight = br.ReadInt16();
 					font.DescendHeight = br.ReadInt16();
 					font.LeadHeight = br.ReadInt16();
 					font.LeadWidth = br.ReadInt16();
 					int CharacterCount = br.ReadInt32();
-					font.Unknown7 = br.ReadInt32();
-					font.Unknown8 = br.ReadInt32();
+					int MaxCompressedSize = br.ReadInt32();
+					int MaxDecompressedSize = br.ReadInt32();
 					int CompressedSize = br.ReadInt32();
 					int DecompressedSize = br.ReadInt32();
 
@@ -55,11 +52,9 @@ namespace FontPackager.Classes
 
 					font.KerningPairs = font.KerningPairs.OrderBy(x => x.Character).ThenBy(x => x.TargetCharacter).ToList();
 
-					int unk = br.ReadInt32();
-					int unk2 = br.ReadInt32();
-
-					font.UnknownL1 = br.ReadInt32();
-					font.UnknownL2 = br.ReadInt32();
+					int[] kerningbits = new int[8];
+					for (int i = 0; i < 8; i++)
+						kerningbits[i] = br.ReadInt32();
 
 					int characterdataoffset = 0x40400 + (CharacterCount * 0x10);
 
@@ -73,16 +68,9 @@ namespace FontPackager.Classes
 						fs.Position = 0x40400 + (i * 0x10);
 
 						int datalength = 0;
-						if (fmt.HasFlag(FileFormat.x64Char))
-						{
-							bc.DisplayWidth = br.ReadUInt32();
-							datalength = br.ReadInt32();
-						}
-						else
-						{
-							bc.DisplayWidth = br.ReadUInt16();
-							datalength = br.ReadUInt16();
-						}
+
+						bc.DisplayWidth = br.ReadUInt16();
+						datalength = br.ReadUInt16();
 
 						bc.Width = br.ReadUInt16();
 						bc.Height = br.ReadUInt16();
@@ -108,22 +96,16 @@ namespace FontPackager.Classes
 
 						if (i == 0)
 							firstpointer = charindex;
-						else
-						{
-							if (charindex == firstpointer)
-								continue;
-							else
-								CharacterPointers.Add(charindex);
-						}
+						else if (charindex == firstpointer)
+							continue;
 
 						CharacterEntries[charindex].UnicIndex = (ushort)i;
 
 						font.Characters.Add(CharacterEntries[charindex]);
-
 					}
 
-					return new Tuple<IOError, FileFormat, BlamFont>
-							(IOError.None, fmt, font);
+					return new Tuple<IOError, BlamFont>
+							(IOError.None, font);
 				}
 			}
 		}
@@ -145,7 +127,7 @@ namespace FontPackager.Classes
 					var res = ReadLooseFile(file);
 					if (res.Item1 == IOError.None)
 					{
-						fonts.Add(res.Item3);
+						fonts.Add(res.Item2);
 					}
 				}
 			}
@@ -163,11 +145,10 @@ namespace FontPackager.Classes
 		/// Collects and reads all H2-era extensionless font files and ordering from a font_table.txt file.
 		/// </summary>
 		/// <param name="path">The path to a folder, font_table.txt, or individual font file.</param>
-		public static Tuple<IOError, FileFormat, List<BlamFont>, List<int>> ReadTable(string path)
+		public static Tuple<IOError, List<BlamFont>, List<int>> ReadTable(string path)
 		{
 			List<BlamFont> fonts = new List<BlamFont>();
 			List<int> orders = new List<int>();
-			FileFormat fmt = 0;
 
 			List<string> readfiles = new List<string>();
 
@@ -188,25 +169,23 @@ namespace FontPackager.Classes
 					if (res.Item1 == IOError.None)
 					{
 						orders.Add(fonts.Count);
-						fonts.Add(res.Item3);
-						if (fmt == 0)
-							fmt = res.Item2;
+						fonts.Add(res.Item2);
 					}
 					else if (res.Item1 == IOError.BadVersion)
-						return new Tuple<IOError, FileFormat, List<BlamFont>, List<int>>
-							(IOError.BadVersion, 0, null, null);
+						return new Tuple<IOError, List<BlamFont>, List<int>>
+							(IOError.BadVersion, null, null);
 
 					readfiles.Add(listfonts[i]);
 				}
 			}
 
 			if (fonts.Count == 0)
-				return new Tuple<IOError, FileFormat, List<BlamFont>, List<int>>
-							(IOError.Empty, 0, null, null);
+				return new Tuple<IOError, List<BlamFont>, List<int>>
+							(IOError.Empty, null, null);
 
 
-			return new Tuple<IOError, FileFormat, List<BlamFont>, List<int>>
-						(IOError.None, fmt, fonts, orders);
+			return new Tuple<IOError, List<BlamFont>, List<int>>
+						(IOError.None, fonts, orders);
 		}
 
 		/// <summary>
@@ -214,11 +193,14 @@ namespace FontPackager.Classes
 		/// </summary>
 		/// <param name="font">The font to write.</param>
 		/// <param name="path">The path to the font file to be created.</param>
-		/// <param name="format">The target format.</param>
-		public static void WriteLooseFile(BlamFont font, string path, FileFormat format)
+		/// <param name="info">The target format.</param>
+		public static void WriteLooseFile(BlamFont font, string path, FormatInformation info)
 		{
 			int compsize = 0;
 			int uncompsize = 0;
+
+			int maxcomp = 0;
+			int maxuncomp = 0;
 
 			byte[] TailOutput;
 			using (MemoryStream ms = new MemoryStream())
@@ -242,12 +224,16 @@ namespace FontPackager.Classes
 						BlamCharacter bc = font.Characters[i];
 
 						compsize += bc.CompressedSize;
-						uncompsize += bc.DecompressedSize / 4;//8bpp
+						int adjustedUncomp = bc.DecompressedSize / 4;//8bpp
+						uncompsize += adjustedUncomp;
+
+						maxcomp = Math.Max(bc.CompressedSize, maxcomp);
+						maxuncomp = Math.Max(adjustedUncomp, maxuncomp);
 
 						ims.Position = (bc.UnicIndex * 4);
 						ibw.Write(i);
 
-						if (format.HasFlag(FileFormat.x64Char))
+						if (info.Flags.HasFlag(FormatFlags.x64Character))
 						{
 							cbw.Write(bc.DisplayWidth);
 							cbw.Write(bc.CompressedSize);
@@ -276,7 +262,6 @@ namespace FontPackager.Classes
 					dbw.Dispose();
 
 					TailOutput = ms.ToArray();
-
 				}
 			}
 
@@ -293,22 +278,27 @@ namespace FontPackager.Classes
 					bw.Write(font.LeadWidth);
 					bw.Write(font.LeadHeight);
 					bw.Write(font.Characters.Count);
-					bw.Write(font.Unknown7);
-					bw.Write(font.Unknown8);
+					bw.Write(maxcomp);
+					bw.Write(maxuncomp);
 					bw.Write(compsize);
 					bw.Write(uncompsize);
 					bw.Write(font.KerningPairs.Count);
+
+					int[] kerningbits = new int[8];
 
 					foreach(KerningPair kp in font.KerningPairs)
 					{
 						bw.Write(kp.Character);
 						bw.Write(kp.TargetCharacter);
 						bw.Write(kp.Value);
+
+						int index = kp.Character / 32;
+						int bit = kp.Character % 32;
+						kerningbits[index] |= 1 << bit;
 					}
 
-					fs.Position += 8;
-					bw.Write(font.UnknownL1);
-					bw.Write(font.UnknownL2);
+					foreach (int kpb in kerningbits)
+						bw.Write(kpb);
 
 					fs.Position = 0x400;
 					bw.Write(TailOutput);
@@ -323,17 +313,17 @@ namespace FontPackager.Classes
 		/// <param name="fonts">The fonts to write.</param>
 		/// <param name="orders">The engine order to write to font_table.txt.</param>
 		/// <param name="path">The path to the font_table.txt to be written. (Fonts save to the same directory)</param>
-		/// <param name="format">The target format.</param>
-		public static void WriteTable(List<BlamFont> fonts, List<int> orders, string path, FileFormat format)
+		/// <param name="info">The target format.</param>
+		public static void WriteTable(List<BlamFont> fonts, List<int> orders, string path, FormatInformation info)
 		{
 			string dir = Path.GetDirectoryName(path);
 
 			foreach(BlamFont f in fonts)
-				WriteLooseFile(f, dir + "\\" +  f.SanitizedName, format);
+				WriteLooseFile(f, dir + "\\" +  f.SanitizedName, info);
 
 			using (StringWriter sw = new StringWriter())
 			{
-				for (int i = 0; i < 12; i++)
+				for (int i = 0; i < info.MaximumFontCount; i++)
 				{
 					if (orders[i] == -1 || orders[i] > fonts.Count)
 						sw.WriteLine();

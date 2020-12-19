@@ -95,6 +95,7 @@
     <Compile Include="Classes\BlamFont.cs" />
     <Compile Include="Classes\BlamCharacter.cs" />
     <Compile Include="Classes\CharacterTools.cs" />
+    <Compile Include="Classes\FormatInformation.cs" />
     <Compile Include="Classes\TableIO.cs" />
     <Compile Include="Classes\TagIO.cs" />
     <Compile Include="Classes\PackageIO.cs" />

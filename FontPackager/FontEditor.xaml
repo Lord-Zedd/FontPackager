@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager"
         mc:Ignorable="d" x:Name="window" Icon=".\Resources\icon.ico" Closing="window_Closing"
-        Title="Font Packager - Comic Sans" Height="600" Width="680" MinHeight="400" MinWidth="500" UseLayoutRounding="True">
+        Title="Font Packager - Comic Sans" Height="600" Width="720" MinHeight="400" MinWidth="500" UseLayoutRounding="True">
 	<Window.Resources>
 		<ImageBrush x:Key="DarkCheck" ImageSource="Resources\dtile.png" Stretch="Uniform" TileMode="Tile" Viewport="0,0,12,12" ViewportUnits="Absolute" Opacity="0.5" />
 		<ImageBrush x:Key="LightCheck" ImageSource="Resources\ltile.png" Stretch="Uniform" TileMode="Tile" Viewport="0,0,12,12" ViewportUnits="Absolute" Opacity="0.5" />

@@ -115,7 +115,6 @@ namespace FontPackager.Classes
 			}
 
 			return output;
-
 		}
 		/// <summary>
 		/// Compresses the given character's decompressed data.
@@ -323,8 +322,7 @@ namespace FontPackager.Classes
 		/// <returns>A BlamCharacter</returns>
 		public static BlamCharacter CreateCharacter(ushort unicindex, Image image, CharTint tint, bool crop)
 		{
-			Rectangle bounds;
-			return CreateCharacter(unicindex, image, tint, crop, out bounds);
+			return CreateCharacter(unicindex, image, tint, crop, out Rectangle bounds);
 		}
 
 		/// <summary>
@@ -388,6 +386,5 @@ namespace FontPackager.Classes
 			
 			return bc;
 		}
-		
 	}
 }

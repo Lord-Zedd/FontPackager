@@ -34,16 +34,8 @@ namespace FontPackager.Classes
 			PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
 		}
 
-		public int Unknown6 { get; set; }
-		public int Unknown6b { get; set; }
-		public int Unknown7 { get; set; }
-		public int Unknown8 { get; set; }
-
-		public int UnknownL1 { get; set; }
-		public int UnknownL2 { get; set; }
-
 		public int MCCScale { get; set; }
-		public int UnknownMCC2 { get; set; }
+		public int UnknownMCC { get; set; }//not read/used?
 
 		public List<KerningPair> KerningPairs { get; set; }
 
@@ -54,8 +46,6 @@ namespace FontPackager.Classes
 			_name = name;
 			Characters = new List<BlamCharacter>();
 			KerningPairs = new List<KerningPair>();//kernman00
-			Unknown6 = -1;
-			Unknown6b = -1;
 			MCCScale = 1;
 		}
 
@@ -111,7 +101,6 @@ namespace FontPackager.Classes
 				NotifyPropertyChanged("CharacterCount");
 				SortCharacters();
 			}
-
 		}
 
 		/// <summary>
@@ -132,7 +121,6 @@ namespace FontPackager.Classes
 			}
 			else
 				return false;
-
 		}
 
 		/// <summary>
@@ -161,10 +149,10 @@ namespace FontPackager.Classes
 		}
 
 		/// <summary>
-		/// Verifies this <see cref="BlamFont"/> against the given <see cref="FileFormat"/> and translates the results to a readable format.
+		/// Verifies this <see cref="BlamFont"/> against the given <see cref="FormatInformation"/> and translates the results to a readable format.
 		/// </summary>
 		/// <returns>Any found errors, or an empty string.</returns>
-		public string Verify(FileFormat format)
+		public string Verify(FormatInformation info)
 		{
 			using (StringWriter sw = new StringWriter())
 			{
@@ -173,10 +161,10 @@ namespace FontPackager.Classes
 
 				foreach (BlamCharacter bc in Characters)
 				{
-					string cr = bc.Verify(format);
+					string cr = bc.Verify(info);
 
 					compressedsize += bc.CompressedSize;
-					decompressedsize += bc.DecompressedSize / (format.HasFlag(FileFormat.Table) ? 4 : 2);
+					decompressedsize += bc.DecompressedSize / (info.Format == FileFormat.Table ? 4 : 2);
 
 					if (!string.IsNullOrEmpty(cr))
 						sw.Write("Character: " + cr);
@@ -191,11 +179,9 @@ namespace FontPackager.Classes
 				if (decompressedsize > uint.MaxValue)
 					sw.WriteLine("Header: Sum of decompressed character data " + decompressedsize.ToString() + " is greater than " + uint.MaxValue.ToString() + ".");
 
-
 				return sw.ToString();
 			}
 		}
-
 	}
 
 	/// <summary>
@@ -214,5 +200,4 @@ namespace FontPackager.Classes
 			Value = value;
 		}
 	}
-
 }

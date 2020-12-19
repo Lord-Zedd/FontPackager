@@ -23,7 +23,7 @@ namespace FontPackager
 		public ObservableCollection<BlamFont> Fonts { get; set; }
 		public ObservableCollection<EngineOrderItem> EngineOrdering { get; set; }
 
-		public FileFormat TargetFormat { get { return (FileFormat)((ComboBoxItem)cmbFmt.SelectedItem).Tag; } }
+		public FormatInformation TargetFormat { get { return (FormatInformation)((ComboBoxItem)cmbFmt.SelectedItem).Tag; } }
 
 		private string LastFilePath = "";
 
@@ -83,14 +83,14 @@ namespace FontPackager
 			listengineorders.ItemsSource = EngineOrdering;
 		}
 		
-		public bool VerifyFonts(FileFormat format)
+		public bool VerifyFonts(FormatInformation info)
 		{
 			string result = "";
 			using (StringWriter sw = new StringWriter())
 			{
 				foreach (BlamFont font in Fonts)
 				{
-					string f = font.Verify(format);
+					string f = font.Verify(info);
 					if (!string.IsNullOrEmpty(f))
 					{
 						sw.WriteLine("~" + font.Name);
@@ -140,44 +140,33 @@ namespace FontPackager
 		#endregion
 
 		#region loading
-		private void FinishLoading(FileFormat format, List<BlamFont> fonts, List<int> orders)
+		private void FinishLoading(FormatInformation info, List<BlamFont> fonts, List<int> orders)
 		{
 			CloseEditors();
 
 			ClearLists();
 
-			switch(format)
-			{
-				case FileFormat.H2X:
-					cmbFmt.SelectedIndex = 0;
-					break;
-				case FileFormat.H2V:
-					cmbFmt.SelectedIndex = 1;
-					break;
-				case FileFormat.H3B:
-					cmbFmt.SelectedIndex = 2;
-					break;
-				case FileFormat.H2MCC:
-					cmbFmt.SelectedIndex = 3;
-					break;
-
-				default:
-				case FileFormat.Package:
-					cmbFmt.SelectedIndex = 4;
-					break;
-				case FileFormat.H4B:
-					cmbFmt.SelectedIndex = 5;
-					break;
-				case FileFormat.H4:
-					cmbFmt.SelectedIndex = 6;
-					break;
-				case FileFormat.MCC:
-					cmbFmt.SelectedIndex = 7;
-					break;
-				case FileFormat.H2AMCC:
-					cmbFmt.SelectedIndex = 8;
-					break;
-			}
+			if (info == FormatInformation.H2X)
+				cmbFmt.SelectedIndex = 0;
+			else if (info == FormatInformation.H2V)
+				cmbFmt.SelectedIndex = 1;
+			else if (info == FormatInformation.H3B)
+				cmbFmt.SelectedIndex = 2;
+			else if (info == FormatInformation.H2MCC)
+				cmbFmt.SelectedIndex = 3;
+			//4 is the fallback
+			else if (info == FormatInformation.H4B)
+				cmbFmt.SelectedIndex = 5;
+			else if (info == FormatInformation.H4)
+				cmbFmt.SelectedIndex = 6;
+			else if (info == FormatInformation.GenericMCC)
+				cmbFmt.SelectedIndex = 7;
+			else if (info == FormatInformation.H4MCC)
+				cmbFmt.SelectedIndex = 8;
+			else if (info == FormatInformation.H2AMCC)
+				cmbFmt.SelectedIndex = 9;
+			else
+				cmbFmt.SelectedIndex = 4;
 
 			CopyCollection(fonts);
 			CopyOrders(orders);
@@ -191,12 +180,14 @@ namespace FontPackager
 			menuTools.IsEnabled = true;
 		}
 
-		private static Tuple<string, FileFormat, List<BlamFont>, List<int>> OpenAndLoadPackage()
+		private static Tuple<string, FormatInformation, List<BlamFont>, List<int>> OpenAndLoadPackage()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
-			ofd.RestoreDirectory = true;
-			ofd.Title = "Open Font Package";
-			ofd.Filter = "Font Package (*.bin)|*.bin";
+			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Open Font Package",
+				Filter = "Font Package (*.bin)|*.bin"
+			};
 			if (!(bool)ofd.ShowDialog())
 				return null;
 
@@ -206,10 +197,13 @@ namespace FontPackager
 			switch (res.Item1)
 			{
 				case IOError.None:
-					return new Tuple<string, FileFormat, List<BlamFont>, List<int>>
+					return new Tuple<string, FormatInformation, List<BlamFont>, List<int>>
 						(filename, res.Item2, res.Item3, res.Item4);
 				case IOError.BadVersion:
 					MessageBox.Show("Package \"" + ofd.SafeFileName + "\" has an invalid header version value and was not loaded.");
+					return null;
+				case IOError.UnknownBlock:
+					MessageBox.Show("Cannot determine Block Size for Package \"" + ofd.SafeFileName + "\" and was not loaded.");
 					return null;
 				case IOError.Empty:
 					MessageBox.Show("Package \"" + ofd.SafeFileName + "\" has a font count of 0 and was not loaded.");
@@ -220,12 +214,14 @@ namespace FontPackager
 			}
 		}
 
-		private static Tuple<string, FileFormat, List<BlamFont>, List<int>> OpenAndLoadTable()
+		private static Tuple<string, List<BlamFont>, List<int>> OpenAndLoadTable()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
-			ofd.RestoreDirectory = true;
-			ofd.Title = "Open Font Table";
-			ofd.Filter = "Font Table (*.txt)|*.txt";
+			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Open Font Table",
+				Filter = "Font Table (*.txt)|*.txt"
+			};
 			if (!(bool)ofd.ShowDialog())
 				return null;
 
@@ -235,8 +231,8 @@ namespace FontPackager
 			switch (res.Item1)
 			{
 				case IOError.None:
-					return new Tuple<string, FileFormat, List<BlamFont>, List<int>>
-						(filename, res.Item2, res.Item3, res.Item4);
+					return new Tuple<string, List<BlamFont>, List<int>>
+						(filename, res.Item2, res.Item3);
 				case IOError.BadVersion:
 					MessageBox.Show("A font within list \"" + ofd.SafeFileName + "\" had an invalid header version value and loading was cancelled.");
 					return null;
@@ -251,11 +247,13 @@ namespace FontPackager
 
 		private static List<BlamFont> OpenAndImportLooseFonts()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
-			ofd.RestoreDirectory = true;
-			ofd.Title = "Open Font Files";
-			ofd.Filter = "Single H2 Font (*)|*";
-			ofd.Multiselect = true;
+			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Open Font Files",
+				Filter = "Single H2 Font (*)|*",
+				Multiselect = true
+			};
 			if (!(bool)ofd.ShowDialog() || ofd.FileNames.Length == 0)
 				return null;
 
@@ -268,7 +266,7 @@ namespace FontPackager
 				switch (res.Item1)
 				{
 					case IOError.None:
-						fonts.Add(res.Item3);
+						fonts.Add(res.Item2);
 						break;
 					case IOError.BadVersion:
 						MessageBox.Show("Font \"" + Path.GetFileName(fn) + "\" had an invalid header version value and was not loaded.");
@@ -288,10 +286,12 @@ namespace FontPackager
 
 		private static Tuple<string, List<BlamFont>> OpenAndImportCacheFonts()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog();
-			ofd.RestoreDirectory = true;
-			ofd.Title = "Open Cache File";
-			ofd.Filter = "Halo CE Cache File (*.map)|*.map";
+			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Open Cache File",
+				Filter = "Halo CE Cache File (*.map)|*.map"
+			};
 			if (!(bool)ofd.ShowDialog())
 				return null;
 
@@ -347,24 +347,26 @@ namespace FontPackager
 		#endregion
 
 		#region saving
-		private bool SavePackage(FileFormat format)
+		private bool SavePackage(FormatInformation info)
 		{
 			string defaultname = "font_package";
 			if (!string.IsNullOrEmpty(fname.Text) && Path.GetExtension(fname.Text) == ".bin")
 				defaultname = Path.GetFileNameWithoutExtension(fname.Text);
 
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog();
-			sfd.RestoreDirectory = true;
-			sfd.Title = "Save Font Package";
-			sfd.Filter = "Font Package (*.bin)|*.bin";
-			sfd.FileName = defaultname;
+			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Save Font Package",
+				Filter = "Font Package (*.bin)|*.bin",
+				FileName = defaultname
+			};
 			if (!(bool)sfd.ShowDialog())
 				return false;
 
-			if (!VerifyFonts(format))
+			if (!VerifyFonts(info))
 				return false;
 
-			PackageIO.Write(Fonts.ToList(), CreateOrderList(), sfd.FileName, format);
+			PackageIO.Write(Fonts.ToList(), CreateOrderList(), sfd.FileName, info);
 
 			LastFilePath = sfd.FileName;
 
@@ -374,24 +376,26 @@ namespace FontPackager
 			return true;
 		}
 
-		private bool SaveTable(FileFormat format)
+		private bool SaveTable(FormatInformation info)
 		{
 			string defaultname = "font_table";
 			if (!string.IsNullOrEmpty(fname.Text) && Path.GetExtension(fname.Text) == ".txt")
 				defaultname = Path.GetFileNameWithoutExtension(fname.Text);
 
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog();
-			sfd.RestoreDirectory = true;
-			sfd.Title = "Save Font File";
-			sfd.Filter = "Font Table (*.txt)|*.txt";
-			sfd.FileName = defaultname;
+			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Save Font File",
+				Filter = "Font Table (*.txt)|*.txt",
+				FileName = defaultname
+			};
 			if (!(bool)sfd.ShowDialog())
 				return false;
 
-			if (!VerifyFonts(format))
+			if (!VerifyFonts(info))
 				return false;
 
-			TableIO.WriteTable(Fonts.ToList(), CreateOrderList(), sfd.FileName, format);
+			TableIO.WriteTable(Fonts.ToList(), CreateOrderList(), sfd.FileName, info);
 
 			LastFilePath = sfd.FileName;
 
@@ -448,20 +452,16 @@ namespace FontPackager
 						if (res == null)
 							return;
 
-						FileFormat fmt = res.Item2;
-						if (fmt == FileFormat.Table)
-						{
-							FontTablePickGame picker = new FontTablePickGame();
-							picker.ShowDialog();
+						FontTablePickGame picker = new FontTablePickGame();
+						picker.ShowDialog();
 
-							if (picker.DialogResult == false)
-								return;
+						if (picker.DialogResult == false)
+							return;
 
-							fmt = picker.Game;
-						}
+						FormatInformation info = picker.Game;
 
 						LastFilePath = res.Item1;
-						FinishLoading(fmt, res.Item3, res.Item4);
+						FinishLoading(info, res.Item2, res.Item3);
 					}
 					break;
 				default:
@@ -481,9 +481,9 @@ namespace FontPackager
 
 			bool success = false;
 
-			if (TargetFormat.HasFlag(FileFormat.Table))
+			if (TargetFormat.Format == FileFormat.Table)
 			{
-				if (Fonts.Count > 12)
+				if (Fonts.Count > TargetFormat.MaximumFontCount)
 				{
 					MessageBox.Show("The table format only supports up to 12 fonts. Remove some to save as this format.");
 					return;
@@ -491,13 +491,11 @@ namespace FontPackager
 				success = SaveTable(TargetFormat);
 			}
 				
-			else if (TargetFormat.HasFlag(FileFormat.Package))
+			else if (TargetFormat.Format == FileFormat.Package)
 			{
-				int max = TargetFormat.HasFlag(FileFormat.Max64) ? 64 : 16;
-
-				if (Fonts.Count > max)
+				if (Fonts.Count > TargetFormat.MaximumFontCount)
 				{
-					MessageBox.Show("The chosen package format only supports up to " + max + " fonts. Remove some to save as this format.");
+					MessageBox.Show("The chosen package format only supports up to " + TargetFormat.MaximumFontCount + " fonts. Remove some to save as this format.");
 					return;
 				}
 				success = SavePackage(TargetFormat);
@@ -509,7 +507,7 @@ namespace FontPackager
 
 		private void btnImport_Click(object sender, RoutedEventArgs e)
 		{
-			List<BlamFont> fonts = null;
+			List<BlamFont> fonts;
 			string filename = "";
 			bool skipdialog = false;
 			switch ((string)((MenuItem)sender).Tag)
@@ -531,7 +529,7 @@ namespace FontPackager
 							return;
 
 						filename = res.Item1;
-						fonts = res.Item3;
+						fonts = res.Item2;
 					}
 					break;
 				case "loose":
@@ -570,19 +568,12 @@ namespace FontPackager
 				importer.ShowDialog();
 
 				if (importer.DialogResult == false)
-				{
-					fonts = null;
-					importer = null;
 					return;
-				}
 				
 				CopyCollection(importer.SelectedFonts);
 
 				MessageBox.Show("Successfully imported " + importer.SelectedFonts.Count + " fonts from \"" + shortname + "\".");
-				importer = null;
 			}
-
-			fonts = null;
 		}
 
 		private void PCImport_Click(object sender, RoutedEventArgs e)
@@ -700,9 +691,8 @@ namespace FontPackager
 		{
 			if (e.LeftButton == MouseButtonState.Pressed)
 			{
-				if (sender is ListBoxItem)
+				if (sender is ListBoxItem item)
 				{
-					ListBoxItem item = (ListBoxItem)sender;
 					DragDrop.DoDragDrop(item, item.DataContext, DragDropEffects.Move);
 					item.IsSelected = true;
 				}
@@ -715,15 +705,13 @@ namespace FontPackager
 			if (e.Data.GetDataPresent(typeof(List<BlamCharacter>)) || dropped == null)
 				return;
 
-			int target = -1;
-
 			if (isdropping_reorder)
 			{
 				isdropping_reorder = false;
 				e.Handled = true;
 				return;
 			}
-			target = listfonts.Items.Count - 1;
+			int target = listfonts.Items.Count - 1;
 			
 			int orig = listfonts.Items.IndexOf(dropped);
 
@@ -738,10 +726,8 @@ namespace FontPackager
 			if (e.Data.GetDataPresent(typeof(List<BlamCharacter>)) || dropped == null)
 				return;
 
-			int target = -1;
-
 			BlamFont send = (BlamFont)((ListBoxItem)sender).DataContext;
-			target = listfonts.Items.IndexOf(send);
+			int target = listfonts.Items.IndexOf(send);
 			isdropping_reorder = true;
 
 			int orig = listfonts.Items.IndexOf(dropped);

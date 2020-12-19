@@ -43,7 +43,7 @@ namespace FontPackager.Dialogs
 
 		private void listfonts_SelectionChanged(object sender, SelectionChangedEventArgs e)
 		{
-			btnImport.IsEnabled = (listfonts.SelectedItems.Count > 0) ? true : false;
+			btnImport.IsEnabled = (listfonts.SelectedItems.Count > 0);
 		}
 
 		private void listfonts_MouseDown(object sender, MouseButtonEventArgs e)

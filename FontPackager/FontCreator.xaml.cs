@@ -58,19 +58,17 @@ namespace FontPackager
 			ascprev.Text = "null";
 			descprev.Text = "null";
 
-			float fontsize = 8;
-			short offset = 0;
 
 			bool parsed;
 
-			parsed = float.TryParse(pcsize.Text, out fontsize);
+			parsed = float.TryParse(pcsize.Text, out float fontsize);
 			if (!parsed || fontsize <= 0)
 			{
 				MessageBox.Show("Font Size could not be parsed or is invalid.");
 				return;
 			}
 
-			parsed = short.TryParse(offsety.Text, out offset);
+			parsed = short.TryParse(offsety.Text, out short offset);
 			if (!parsed)
 			{
 				MessageBox.Show("Offset could not be parsed or is invalid.");
