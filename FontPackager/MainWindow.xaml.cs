@@ -693,15 +693,32 @@ namespace FontPackager
 			{
 				if (sender is ListBoxItem item)
 				{
-					DragDrop.DoDragDrop(item, item.DataContext, DragDropEffects.Move);
-					item.IsSelected = true;
+					try
+					{
+						DragDrop.DoDragDrop(item, item.DataContext, DragDropEffects.Move);
+						item.IsSelected = true;
+					}
+					catch (Exception)
+					{
+						MessageBox.Show("Error", "Cannot drag fonts between separate instances of FontPackager. Use the import option in the Tools menu.");
+					}
 				}
 			}
 		}
 
 		private void listfonts_Drop(object sender, DragEventArgs e)
 		{
-			BlamFont dropped = (BlamFont)e.Data.GetData(typeof(BlamFont));
+			BlamFont dropped;
+			try
+			{
+				dropped = (BlamFont)e.Data.GetData(typeof(BlamFont));
+			}
+			catch (Exception)
+			{
+				MessageBox.Show("Error", "Cannot drag fonts between separate instances of FontPackager. Use the import option in the Tools menu.");
+				return;
+			}
+
 			if (e.Data.GetDataPresent(typeof(List<BlamCharacter>)) || dropped == null)
 				return;
 
