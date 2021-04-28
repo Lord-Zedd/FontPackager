@@ -211,7 +211,7 @@
 										<TextBlock>Width: <Run Text="{Binding Width, StringFormat={}{0:D}}"/></TextBlock>
 										<TextBlock>Height: <Run Text="{Binding Height, StringFormat={}{0:D}}"/></TextBlock>
 										<TextBlock/>
-										<TextBlock>Select characters then drag and drop to other open fonts, or the PC Importer.</TextBlock>
+										<TextBlock>Select characters then drag and drop to other open fonts, or the System Font Converter.</TextBlock>
 										<TextBlock>Double-Click to copy this unicode character to your clipboard.</TextBlock>
 										<TextBlock/>
 										<TextBlock>(While selected)</TextBlock>
