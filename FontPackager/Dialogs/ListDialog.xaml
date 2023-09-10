@@ -14,6 +14,10 @@
 		</Grid.RowDefinitions>
 		<TextBlock x:Name="msgtxt" Text="blah" TextWrapping="Wrap"/>
 		<TextBox x:Name="resulttxt" IsReadOnly="True" Grid.Row="1" VerticalScrollBarVisibility="Visible" TextWrapping="Wrap" Margin="0,4,0,4"/>
-		<Button Content="OK" Grid.Row="2" Width="64" HorizontalAlignment="Right" Click="Button_Click" />
+		<StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Right">
+			<Button x:Name="ignorebtn" Content="Ignore and Continue" Width="128" Click="Button_Click_1" Visibility="Hidden"/>
+			<Button Content="OK" Margin="4,0,0,0" Width="64"  Click="Button_Click" />
+		</StackPanel>
+		
 	</Grid>
 </Window>

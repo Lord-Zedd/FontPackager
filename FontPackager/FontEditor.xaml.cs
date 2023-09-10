@@ -225,10 +225,10 @@ namespace FontPackager
 			if (string.IsNullOrEmpty(result))
 				return true;
 
-			ListDialog ve = new ListDialog(result);
-			ve.Show();
+			ListDialog ve = new ListDialog(result, true);
+			ve.ShowDialog();
 
-			return false;
+			return ve.IgnoreErrors;
 		}
 
 		private void bg_Checked(object sender, RoutedEventArgs e)
@@ -651,7 +651,7 @@ namespace FontPackager
 
 			ListDialog ve = new ListDialog("Batch Add",
 				"Batch add completed.\r\n" + successcount + " characters were added/replaced successfully. Any errors, if any will appear below:",
-				badname + badconvert + badverify + allerrors);
+				badname + badconvert + badverify + allerrors, false);
 			ve.ShowDialog();
 		}
 
@@ -699,9 +699,10 @@ namespace FontPackager
 
 			if (!string.IsNullOrEmpty(errors))
 			{
-				ListDialog ve = new ListDialog(errors);
+				ListDialog ve = new ListDialog(errors, true);
 				ve.ShowDialog();
-				return;
+				if (!ve.IgnoreErrors)
+					return;
 			}
 
 			Font.AddCharacter(newchar);

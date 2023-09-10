@@ -105,10 +105,10 @@ namespace FontPackager
 			if (string.IsNullOrEmpty(result))
 				return true;
 
-			ListDialog ve = new ListDialog(result);
-			ve.Show();
+			ListDialog ve = new ListDialog(result, true);
+			ve.ShowDialog();
 
-			return false;
+			return ve.IgnoreErrors;
 		}
 
 		private void CloseEditors()
