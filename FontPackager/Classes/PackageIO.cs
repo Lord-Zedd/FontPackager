@@ -22,7 +22,7 @@ namespace FontPackager.Classes
 		/// Reads a font_package.bin file.
 		/// </summary>
 		/// <param name="path">The path to the font_package.bin file to be read.</param>
-		public static Tuple<IOError, FileFormat, List<BlamFont>, List<int>> Read(string path)
+		public static Tuple<IOError, FormatInformation, List<BlamFont>, List<int>> Read(string path)
 		{
 			using (FileStream fs = new FileStream(path, FileMode.Open))
 			{
@@ -31,40 +31,40 @@ namespace FontPackager.Classes
 					uint pversion = br.ReadUInt32();
 					if (pversion != PackageVersion360 && pversion != PackageVersionX64 && pversion != PackageVersionX64H2A)
 					{
-						return new Tuple<IOError, FileFormat, List<BlamFont>, List<int>>
-							(IOError.BadVersion, 0, null, null);
+						return new Tuple<IOError, FormatInformation, List<BlamFont>, List<int>>
+							(IOError.BadVersion, null, null, null);
 					}
 
 					int fontcount = br.ReadInt32();
 					if (fontcount <= 0)
 					{
-						return new Tuple<IOError, FileFormat, List<BlamFont>, List<int>>
-							(IOError.Empty, 0, null, null);
+						return new Tuple<IOError, FormatInformation, List<BlamFont>, List<int>>
+							(IOError.Empty, null, null, null);
 					}
 
 					List<BlamFont> fonts = new List<BlamFont>();
 					List<int> orders = new List<int>();
 
-					int maxfontcount = 16;
+					FormatInformation info = new FormatInformation(FileFormat.Package);
 
 					int maxcounthack = br.ReadInt32();
 					if (maxcounthack == 1048)
-						maxfontcount = 64;
+						info.Flags |= FormatFlags.Max64Fonts;
 
-					FileFormat fmt = FileFormat.Package;
+					bool confirmedChunkSize = false;
 
 					if (pversion == PackageVersionX64)
-						fmt = FileFormat.MCC;
+						info = FormatInformation.GenericMCC;
 					else if (pversion == PackageVersionX64H2A)
-						fmt = FileFormat.H2AMCC;
-
-					if (maxfontcount == 64)
-						fmt |= FileFormat.Max64;
+					{
+						info = FormatInformation.H2AMCC;
+						confirmedChunkSize = true;
+					}
 
 					br.BaseStream.Position -= 4;
 					List<FontInfo> fontinfo = new List<FontInfo>();
 
-					for (int i = 0; i < maxfontcount; i++)
+					for (int i = 0; i < info.MaximumFontCount; i++)
 					{
 						fontinfo.Add(new FontInfo()
 						{
@@ -75,7 +75,7 @@ namespace FontPackager.Classes
 						});
 					}
 
-					for (int i = 0; i < maxfontcount; i++)
+					for (int i = 0; i < info.MaximumFontCount; i++)
 						orders.Add(br.ReadInt32());
 
 					int headerTableOffset = br.ReadInt32();
@@ -87,28 +87,52 @@ namespace FontPackager.Classes
 
 					List<Block> blocks = new List<Block>();
 
-					br.BaseStream.Position = 0x8000;
-					short h4bCheck = br.ReadInt16();
+					//iterate each possible block size until we get a result
+					if (!confirmedChunkSize && fs.Length > 0x8002)
+					{
+						fs.Position = 0x8000;
+						if (br.ReadInt16() == BlockVersion)
+						{
+							info.ChunkSize = ChunkSize.Size8000;
+							confirmedChunkSize = true;
+						}
+					}
 
-					if (!fmt.HasFlag(FileFormat.ChunkC) && !fmt.HasFlag(FileFormat.Chunk10) &&
-						maxfontcount == 64 && h4bCheck != BlockVersion)
-						fmt |= FileFormat.ChunkC;
+					if (!confirmedChunkSize && fs.Length > 0xC002)
+					{
+						fs.Position = 0xC000;
+						if (br.ReadInt16() == BlockVersion)
+						{
+							info.ChunkSize = ChunkSize.SizeC000;
+							confirmedChunkSize = true;
+						}
+					}
 
-					int ChunkSize = 0x8000;
-					if (fmt.HasFlag(FileFormat.ChunkC))
-						ChunkSize = 0xC000;
-					else if (fmt.HasFlag(FileFormat.Chunk10))
-						ChunkSize = 0x10000;
+					if (!confirmedChunkSize && fs.Length > 0x10002)
+					{
+						fs.Position = 0x10000;
+						if (br.ReadInt16() == BlockVersion)
+						{
+							// h4mcc uses the groundhog format but the regular mcc package version, so correct it if needed
+							if (info == FormatInformation.GenericMCC)
+								info = FormatInformation.H4MCC;
+							else
+								info.ChunkSize = ChunkSize.Size10000;
 
-					int blocktest = 0;
+							confirmedChunkSize = true;
+						}
+					}
+
+					if (info.ChunkSize == ChunkSize.None)
+						return new Tuple<IOError, FormatInformation, List<BlamFont>, List<int>>
+							(IOError.UnknownBlock, null, null, null);
 
 					for (int i = 0; i < blockCount; i++)
 					{
 						Block dataBlock = new Block();
-						dataBlock.Read(br, ChunkSize + (i * ChunkSize), fmt);
+						dataBlock.Read(br, info.ChunkSizeValue + (i * info.ChunkSizeValue), info);
 
 						blocks.Add(dataBlock);
-						blocktest += dataBlock.BlockCharacters.Count;
 					}
 
 					for (int i = 0; i < fontcount; i++)
@@ -116,8 +140,6 @@ namespace FontPackager.Classes
 						br.BaseStream.Position = fontinfo[i].Offset;
 
 						uint fversion = br.ReadUInt32();
-
-						int start = (int)br.BaseStream.Position;
 
 						var tempfont = new BlamFont(br.ReadStringToNull(32));
 
@@ -132,23 +154,35 @@ namespace FontPackager.Classes
 
 						int pairend = br.ReadInt32();
 						int LastCharacter = br.ReadInt32();
+
 						int CharacterCount = br.ReadInt32();
 						int virtualdatastart = br.ReadInt32();
 						int virtualdatasize = br.ReadInt32();
-						tempfont.Unknown6 = br.ReadInt32();
-						if (fmt.HasFlag(FileFormat.x64Head))
-							tempfont.Unknown6b = br.ReadInt32();
-						tempfont.Unknown7 = br.ReadInt32();
-						tempfont.Unknown8 = br.ReadInt32();
+
+						VirtualChar FallbackCharacter = null;
+
+						if (info.Flags.HasFlag(FormatFlags.x64Header))
+						{
+							ulong fallback = br.ReadUInt64();
+							if (fallback != 0xFFFFFFFFFFFFFFFF)
+								FallbackCharacter = new VirtualChar(fallback);
+						}
+						else
+						{
+							uint fallback = br.ReadUInt32();
+							if (fallback != 0xFFFFFFFF)
+								FallbackCharacter = new VirtualChar(fallback);
+						}
+
+						int MaxCompressedSize = br.ReadInt32();
+						int MaxDecompressedSize = br.ReadInt32();
 						int CompressedSize = br.ReadInt32();
 						int DecompressedSize = br.ReadInt32();
 
-						int lastc = LastCharacter;
-
-						if (fmt.HasFlag(FileFormat.x64Head))
+						if (info.Flags.HasFlag(FormatFlags.x64Header))
 						{
 							tempfont.MCCScale = br.ReadInt32();
-							tempfont.UnknownMCC2 = br.ReadInt32();
+							tempfont.UnknownMCC = br.ReadInt32();
 						}
 
 						List<Tuple<byte, sbyte>> pairs = new List<Tuple<byte, sbyte>>();
@@ -175,7 +209,7 @@ namespace FontPackager.Classes
 
 						tempfont.KerningPairs = tempfont.KerningPairs.OrderBy(x => x.Character).ThenBy(x => x.TargetCharacter).ToList();
 
-						for (int bl = fontinfo[i].StartBlock; bl < (fontinfo[i].StartBlock + fontinfo[i].BlockCount); bl++)
+						for (int bl = 0; bl < (fontinfo[i].StartBlock + fontinfo[i].BlockCount); bl++)
 						{
 							for (int ch = 0; ch < blocks[bl].BlockCharacters.Count; ch++)
 							{
@@ -187,8 +221,8 @@ namespace FontPackager.Classes
 						}
 						fonts.Add(tempfont);
 					}
-					return new Tuple<IOError, FileFormat, List<BlamFont>, List<int>>
-							(IOError.None, fmt, fonts, orders);
+					return new Tuple<IOError, FormatInformation, List<BlamFont>, List<int>>
+							(IOError.None, info, fonts, orders);
 				}
 			}
 		}
@@ -199,18 +233,10 @@ namespace FontPackager.Classes
 		/// <param name="fonts">The fonts to package.</param>
 		/// <param name="orders">The engine order to use.</param>
 		/// <param name="path">The path to the font_package.bin to be created.</param>
-		/// <param name="format">The target format.</param>
-		public static void Write(List<BlamFont> fonts, List<int> orders, string path, FileFormat format)
+		/// <param name="info">The target format.</param>
+		public static void Write(List<BlamFont> fonts, List<int> orders, string path, FormatInformation info)
 		{
-			int maxcount = (format & FileFormat.Max64) != 0 ? 64 : 16;
-
-			int chunksize = 0x8000;
-			if (format.HasFlag(FileFormat.ChunkC))
-				chunksize = 0xC000;
-			else if (format.HasFlag(FileFormat.Chunk10))
-				chunksize = 0x10000;
-
-			BlockWriter blw = new BlockWriter(chunksize, format);
+			BlockWriter blw = new BlockWriter(info);
 			blw.Write(fonts);
 
 			byte[] BlockOutput = blw.GetBlocks();
@@ -225,7 +251,7 @@ namespace FontPackager.Classes
 				{
 					for (int i = 0; i < fonts.Count; i++)
 					{
-						if (i >= maxcount)
+						if (i >= info.MaximumFontCount)
 							break;
 
 						BlamFont f = fonts[i];
@@ -236,14 +262,12 @@ namespace FontPackager.Classes
 						{
 							using (BinaryWriter fbw = new BinaryWriter(fms))
 							{
-								fbw.Write(format.HasFlag(FileFormat.x64Head) ? FontVersionX64 : FontVersion360);
+								fbw.Write(info.Flags.HasFlag(FormatFlags.x64Header) ? FontVersionX64 : FontVersion360);
 
 								string trimname = f.Name;
 								if (trimname.Length > 32)
 									trimname = trimname.Substring(0, 32);
 
-								int basesize = format.HasFlag(FileFormat.x64Head) ? 0x168 : 0x15C;
-								
 								byte[] namebytes = new byte[32];
 								Array.Copy(Encoding.ASCII.GetBytes(trimname), namebytes, trimname.Length);
 								fbw.Write(namebytes);
@@ -252,7 +276,7 @@ namespace FontPackager.Classes
 								fbw.Write(f.DescendHeight);
 								fbw.Write(f.LeadHeight);
 								fbw.Write(f.LeadWidth);
-								fbw.Write(basesize);
+								fbw.Write(info.PackageFontHeaderBaseLength);
 								fbw.Write(f.KerningPairs.Count);
 
 								byte[] kernindexes = new byte[0x100];
@@ -282,47 +306,44 @@ namespace FontPackager.Classes
 								}
 
 								fbw.Write(kernindexes);
-
-								fbw.Write(basesize + kernpairs.Length);
+								
+								fbw.Write(info.PackageFontHeaderBaseLength + kernpairs.Length);
 
 								ushort indexcount = (ushort)(f.Characters.Last().UnicIndex + 1);
 
 								fbw.Write((int)indexcount);
 								fbw.Write(f.Characters.Count);
 
-								int indexsize = (format.HasFlag(FileFormat.x64Head)) ? 8 : 4;
+								int indexsize = info.Flags.HasFlag(FormatFlags.x64Header) ? 8 : 4;
 
-								fbw.Write((basesize + kernpairs.Length + (indexcount * indexsize)));
+								fbw.Write(info.PackageFontHeaderBaseLength + kernpairs.Length + (indexcount * indexsize));
 								fbw.Write(FontInfos[i].BlockDataSize);
 
-								if (format.HasFlag(FileFormat.x64Head))
+								if (info.Flags.HasFlag(FormatFlags.x64Header))
 								{
-									//seems like just 1 cant be null, but doesnt seem to be a long
-									if (f.Unknown6 == -1 || f.Unknown6b == -1)
-									{
-										fbw.Write((int)-1);
-										fbw.Write((int)-1);
-									}
+									if (FontInfos[i].FallbackCharacter != null)
+										fbw.Write(FontInfos[i].FallbackCharacter.PackDatum64());
 									else
-									{
-										fbw.Write(f.Unknown6);
-										fbw.Write(f.Unknown6b);
-									}
-
+										fbw.Write((long)-1);
 								}
 								else
-									fbw.Write(f.Unknown6 != -1 ? f.Unknown6 : -1);
+								{
+									if (FontInfos[i].FallbackCharacter != null)
+										fbw.Write(FontInfos[i].FallbackCharacter.PackDatum32());
+									else
+										fbw.Write(-1);
+								}
 
-								fbw.Write(f.Unknown7 != 0 ? f.Unknown7 : 1);
-								fbw.Write(f.Unknown8 != 0 ? f.Unknown8 : 1); //cannot figure out what these are for, but seems bullshit-able
+								fbw.Write(FontInfos[i].MaxCompressedSize);
+								fbw.Write(FontInfos[i].MaxDecompressedSize);
 
 								fbw.Write(FontInfos[i].CompressedSize);
 								fbw.Write(FontInfos[i].DecompressedSize);
 
-								if (format.HasFlag(FileFormat.x64Head))
+								if (info.Flags.HasFlag(FormatFlags.x64Header))
 								{
 									fbw.Write(f.MCCScale != 0 ? f.MCCScale : 0x1);
-									fbw.Write(f.UnknownMCC2 != 0 ? f.UnknownMCC2 : 0x0);
+									fbw.Write(f.UnknownMCC);
 								}
 
 								fbw.Write(kernpairs);
@@ -344,18 +365,18 @@ namespace FontPackager.Classes
 			{
 				using (BinaryWriter bw = new BinaryWriter(fs))
 				{
-					int orderstart = 8 + (maxcount * 0xC);
-					int headerstart = orderstart + (maxcount * 4) + 0x10;
+					int orderstart = 8 + (info.MaximumFontCount * 0xC);
+					int headerstart = orderstart + (info.MaximumFontCount * 4) + 0x10;
 
-					if (format.HasFlag(FileFormat.x64Head | FileFormat.x64Char))
+					if (info.Flags.HasFlag(FormatFlags.GenericVersion) || info.Flags.HasFlag(FormatFlags.x64Header | FormatFlags.x64Character))
 						bw.Write(PackageVersionX64);
-					else if (format.HasFlag(FileFormat.x64Head))
+					else if (info.Flags.HasFlag(FormatFlags.x64Header))
 						bw.Write(PackageVersionX64H2A);
 					else
 						bw.Write(PackageVersion360);
 
 					bw.Write(fonts.Count);
-					for (int i = 0; i < maxcount; i++)
+					for (int i = 0; i < info.MaximumFontCount; i++)
 					{
 						if (i < FontInfos.Count)
 						{
@@ -368,7 +389,7 @@ namespace FontPackager.Classes
 							bw.Write(new byte[0xC]);
 					}
 
-					for (int i = 0; i < maxcount; i++)
+					for (int i = 0; i < info.MaximumFontCount; i++)
 					{
 						if (i < orders.Count)
 							bw.Write(orders[i]);
@@ -389,19 +410,17 @@ namespace FontPackager.Classes
 						bw.Write(bi.EndIndex.FontIndex);
 					}
 
-					fs.Position = chunksize;
+					fs.Position = info.ChunkSizeValue;
 					bw.Write(BlockOutput);
-
 				}
 			}
-	
 		}
 
 		private class Block
 		{
 			public List<BlockChar> BlockCharacters = new List<BlockChar>();
 
-			public void Read(BinaryReader br, int offset, FileFormat format)
+			public void Read(BinaryReader br, int offset, FormatInformation info)
 			{
 				br.BaseStream.Position = offset;
 
@@ -426,7 +445,7 @@ namespace FontPackager.Classes
 					br.BaseStream.Position = offset + bc.DataOffset;
 
 					int datalength = 0;
-					if ((format.HasFlag(FileFormat.x64Char)))
+					if (info.Flags.HasFlag(FormatFlags.x64Character))
 					{
 						bc.Character.DisplayWidth = br.ReadUInt32();
 						datalength = br.ReadInt32();
@@ -444,21 +463,18 @@ namespace FontPackager.Classes
 
 					bc.Character.CompressedData = br.ReadBytes(datalength);
 				}
-				
 			}
 		}
 
 		private class BlockWriter : IDisposable
 		{
-			int fontindex = 0;
-			int chunksize;
+			int FontIndex = 0;
 
-			List<CharDatum> blockchars = new List<CharDatum>();
-			List<int> blockcharsizes = new List<int>();
+			List<CharDatum> BlockChars = new List<CharDatum>();
+			List<int> BlockCharSizes = new List<int>();
 
-			short charcount = 0;
-			ushort lastChar = 0;
-			FileFormat fmt;
+			ushort LastChar = 0;
+			FormatInformation Info;
 
 			MemoryStream ms;
 			BinaryWriter bw;
@@ -472,19 +488,18 @@ namespace FontPackager.Classes
 			public List<WritingFontInfo> FontInfos;
 			public List<BlockInfo> BlockInfos;
 
-			BlockInfo currentblock { get; set; }
+			BlockInfo CurrentBlock { get; set; }
 
-			public BlockWriter(int chunk, FileFormat format)
+			public BlockWriter(FormatInformation info)
 			{
-				chunksize = chunk;
-				fmt = format;
+				Info = info;
 				ms = new MemoryStream();
 				bw = new BinaryWriter(ms);
 				Reset();
 
 				FontInfos = new List<WritingFontInfo>();
 				BlockInfos = new List<BlockInfo>();
-				currentblock = new BlockInfo();
+				CurrentBlock = new BlockInfo();
 			}
 
 			private void Reset()
@@ -498,15 +513,13 @@ namespace FontPackager.Classes
 
 			public void Write(List<BlamFont> fonts)
 			{
-				int maxcount = (fmt & FileFormat.Max64) != 0 ? 64 : 16;
-
-				currentblock.StartIndex = new CharDatum() { UnicIndex = fonts[0].Characters[0].UnicIndex, FontIndex = 0 };
+				CurrentBlock.StartIndex = new CharDatum() { UnicIndex = fonts[0].Characters[0].UnicIndex, FontIndex = 0 };
 				for (int i = 0; i < fonts.Count; i++)
 				{
-					if (i >= maxcount)
+					if (i >= Info.MaximumFontCount)
 						break;
 
-					fontindex = i;
+					FontIndex = i;
 					WritingFontInfo font = new WritingFontInfo();
 					font.StartBlock = (short)BlockInfos.Count;
 
@@ -514,12 +527,25 @@ namespace FontPackager.Classes
 					{
 
 						font.CompressedSize += bc.CompressedSize;
-						font.DecompressedSize += bc.DecompressedSize / 2;//16bpp
+						int adjustedDecomp = bc.DecompressedSize / 2;//16bpp
+						font.DecompressedSize += adjustedDecomp;
+
+						font.MaxCompressedSize = Math.Max(bc.CompressedSize, font.MaxCompressedSize);
+						font.MaxDecompressedSize = Math.Max(adjustedDecomp, font.MaxDecompressedSize);
+
+						int maximumCharSize = Info.ChunkSizeValue - 8 - Info.PackageCharacterInfoLength;
+
+						if (bc.CompressedSize > maximumCharSize)
+							throw new ArgumentException(
+								"Character " + bc.UnicIndex.ToString("X4") + " has a compressed size " + bc.CompressedSize.ToString("X") +
+								" larger than the maximum size " + maximumCharSize.ToString("X") + " based on the package format's ChunkSize and cannot physically fit anywhere.");
 
 						AddChar(bc, i);
 
-						font.BlockDataSize += blockcharsizes.Last();
-							
+						if (bc.UnicIndex == 0x25A1)
+							font.FallbackCharacter = new VirtualChar(font.BlockDataSize, BlockCharSizes.Last());
+
+						font.BlockDataSize += BlockCharSizes.Last();
 					}
 
 					font.BlockCount = (short)(BlockInfos.Count - font.StartBlock + 1);
@@ -537,7 +563,7 @@ namespace FontPackager.Classes
 					{
 						CharDatum c = new CharDatum() { UnicIndex = bc.UnicIndex, FontIndex = (short)font };
 
-						if (fmt.HasFlag(FileFormat.x64Char))
+						if (Info.Flags.HasFlag(FormatFlags.x64Character))
 						{
 							tbw.Write(bc.DisplayWidth);
 							tbw.Write(bc.CompressedSize);
@@ -553,18 +579,20 @@ namespace FontPackager.Classes
 						tbw.Write(bc.OriginY);
 						tbw.Write(bc.CompressedData);
 
-						bool wontfit = ((charcount * 8) + //calculated char table length
+						bool wontfit = (BlockChars.Count * 8) + //calculated char table length
 							dms.Length + //written data length
 							tms.Length + 8 //current char data + table entry
-							> chunksize - 8); //block without header
+							> Info.ChunkSizeValue - 8; //block without header
 
 						if (wontfit)
 						{
 							WriteBlock();
-							currentblock.StartIndex = new CharDatum() { UnicIndex = bc.UnicIndex, FontIndex = (short)font };
+							CurrentBlock.StartIndex = c;
 						}
 
-						blockchars.Add(c);
+						BlockChars.Add(c);
+
+						int lengthtest = (int)tms.Length;
 
 						if (tms.Length % 8 != 0)
 						{
@@ -574,51 +602,46 @@ namespace FontPackager.Classes
 
 						dbw.Write(tms.ToArray());
 
-						blockcharsizes.Add((int)tms.Length);
+						BlockCharSizes.Add((int)tms.Length);
 
-						charcount += 1;
-						lastChar = bc.UnicIndex;
-
+						LastChar = bc.UnicIndex;
 					}
 				}
-				
 			}
 
 			private void WriteBlock()
 			{
 				var chartableoffset = 8;
-				for (int k = 0; k < blockchars.Count; k++)
+				for (int k = 0; k < BlockChars.Count; k++)
 				{
-					cbw.Write(blockchars[k].UnicIndex);
-					cbw.Write(blockchars[k].FontIndex);
-					cbw.Write((charcount * 8) + chartableoffset);
-					chartableoffset += blockcharsizes[k];
+					cbw.Write(BlockChars[k].UnicIndex);
+					cbw.Write(BlockChars[k].FontIndex);
+					cbw.Write((BlockChars.Count * 8) + chartableoffset);
+					chartableoffset += BlockCharSizes[k];
 				}
 
-				blockchars.Clear();
-				blockcharsizes.Clear();
-
 				bw.Write(BlockVersion);
-				bw.Write(charcount);
+				bw.Write((short)BlockChars.Count);
 				bw.Write((short)(cms.Length + 8));
-				bw.Write((short)(dms.Length));
+				bw.Write((short)dms.Length);
 				bw.Write(cms.ToArray());
 				bw.Write(dms.ToArray());
 
-				if (ms.Length % chunksize != 0)
+				BlockChars.Clear();
+				BlockCharSizes.Clear();
+
+				if (ms.Length % Info.ChunkSizeValue != 0)
 				{
-					int remainder = (int)ms.Length % chunksize;
-					ms.SetLength(ms.Length + (chunksize - remainder));
+					int remainder = (int)ms.Length % Info.ChunkSizeValue;
+					ms.SetLength(ms.Length + (Info.ChunkSizeValue - remainder));
 					ms.Position = ms.Length;
 				}
 
-				currentblock.EndIndex = new CharDatum() { UnicIndex = lastChar, FontIndex = (short)fontindex };
+				CurrentBlock.EndIndex = new CharDatum() { UnicIndex = LastChar, FontIndex = (short)FontIndex };
 
-				BlockInfos.Add(currentblock);
+				BlockInfos.Add(CurrentBlock);
 
-				currentblock = new BlockInfo();
-
-				charcount = 0;
+				CurrentBlock = new BlockInfo();
 
 				Reset();
 			}
@@ -636,6 +659,9 @@ namespace FontPackager.Classes
 			}
 		}
 
+		/// <summary>
+		/// An entry from the package header containing the location of a font header and the blocks it uses. Used for reading.
+		/// </summary>
 		private class FontInfo
 		{
 			public int Offset { get; set; }
@@ -643,24 +669,35 @@ namespace FontPackager.Classes
 
 			public short StartBlock { get; set; }
 			public short BlockCount { get; set; }
-
 		}
 
+		/// <summary>
+		/// An extended version of FontInfo to hold various values used in the font header calculated during write.
+		/// </summary>
 		private class WritingFontInfo : FontInfo
 		{
+			public int MaxCompressedSize { get; set; }
+			public int MaxDecompressedSize { get; set; }
+
 			public int CompressedSize { get; set; }
 			public int DecompressedSize { get; set; }
 
 			public int BlockDataSize { get; set; }
-			
+			public VirtualChar FallbackCharacter { get; set; }
 		}
 
+		/// <summary>
+		/// An entry from the package header containing information about a block. Used for reading/writing.
+		/// </summary>
 		private class BlockInfo
 		{
 			public CharDatum StartIndex { get; set; }
 			public CharDatum EndIndex { get; set; }
 		}
 
+		/// <summary>
+		/// An entry in the table at the start of a block defining each character. Used for reading.
+		/// </summary>
 		private class BlockChar
 		{
 			public int FontIndex { get; set; }
@@ -675,10 +712,66 @@ namespace FontPackager.Classes
 			}
 		}
 
+		/// <summary>
+		/// A datum for characters in a block.
+		/// </summary>
 		private class CharDatum
 		{
 			public ushort UnicIndex { get; set; }
 			public short FontIndex { get; set; }
+		}
+
+		/// <summary>
+		/// A virtual character datum that is used for a single probably not even used value in the font header.
+		/// </summary>
+		private class VirtualChar
+		{
+			public int Offset { get; set; }
+			public int Size { get; set; }
+
+			public VirtualChar(int offset, int size)
+			{
+				Offset = offset;
+				Size = size;
+			}
+
+			public VirtualChar(uint datum)
+			{
+				short packedOffset = (short)(datum & 0xFFFF);
+				short packedSize = (short)(datum >> 16 & 0xFFFF);
+
+				Offset = packedOffset << 3;
+				Size = packedSize >> 2;
+			}
+
+			public VirtualChar(ulong datum)
+			{
+				int packedOffset = (int)(datum & 0xFFFFFFFF);
+				int packedSize = (int)(datum >> 32 & 0xFFFFFFFF);
+
+				Offset = packedOffset << 3;
+				Size = packedSize << 3;
+			}
+
+			public uint PackDatum32()
+			{
+				int packedOffset = Offset >> 3;
+				int packedSize = Size << 2;
+
+				uint datum = (uint)packedOffset & 0xFFFF;
+				datum |= (uint)((packedSize & 0xFFFF) << 16);
+				return datum;
+			}
+
+			public ulong PackDatum64()
+			{
+				int packedOffset = Offset >> 3;
+				int packedSize = Size >> 3;
+
+				ulong datum = (uint)packedOffset & 0xFFFFFFFF;
+				datum |= (ulong)(uint)(packedSize & 0xFFFFFFFF) << 32;
+				return datum;
+			}
 		}
 
 	}

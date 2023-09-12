@@ -19,7 +19,7 @@ namespace FontPackager.Classes
 		public uint DisplayWidth
 		{
 			get { return _dwidth; }
-			set { _dwidth = value; NotifyPropertyChanged("DisplayWidth"); NotifyPropertyChanged("UIDisplayWidth"); }
+			set { _dwidth = value; NotifyPropertyChanged("DisplayWidth"); }
 		}
 
 		public ushort Width { get; set; }
@@ -32,14 +32,14 @@ namespace FontPackager.Classes
 		public short OriginX
 		{
 			get { return _originx; }
-			set { _originx = value; NotifyPropertyChanged("OriginX"); NotifyPropertyChanged("UIOriginX"); }
+			set { _originx = value; NotifyPropertyChanged("OriginX"); }
 		}
 
 		short _originy;
 		public short OriginY
 		{
 			get { return _originy; }
-			set { _originy = value; NotifyPropertyChanged("OriginY"); NotifyPropertyChanged("UIOriginY"); }
+			set { _originy = value; NotifyPropertyChanged("OriginY"); }
 		}
 
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -110,71 +110,39 @@ namespace FontPackager.Classes
 		}
 
 		/// <summary>
-		/// Verifies this <see cref="BlamCharacter"/> against the given <see cref="FileFormat"/> and translates the results to a readable format.
+		/// Verifies this <see cref="BlamCharacter"/> against the given <see cref="FormatInformation"/> and translates the results to a readable format.
 		/// </summary>
 		/// <returns>Any found errors, or an empty string.</returns>
-		public string Verify(FileFormat format)
+		public string Verify(FormatInformation info)
 		{
 			using (StringWriter sw = new StringWriter())
 			{
 				string linebase = UnicIndex.ToString("X4") + ": ";
 
-				if (format.HasFlag(FileFormat.Package))
+				if (info.Format == FileFormat.Package)
 				{
-					int onechar = (format.HasFlag(FileFormat.x64Char) ? 0x10 : 0xC);
-
-					int chunksize = 0x8000;
-					if (format.HasFlag(FileFormat.ChunkC))
-						chunksize = 0xC000;
-					else if (format.HasFlag(FileFormat.Chunk10))
-						chunksize = 0x10000;
-
-					if (CompressedSize > (chunksize - 8 - onechar - 4))
-						sw.WriteLine(linebase + "Compressed size " + CompressedSize + " is greater than than the package chunk size, " + chunksize.ToString() + ".");
+					if (CompressedSize > (info.ChunkSizeValue - 8 - info.PackageCharacterInfoLength - 4))
+						sw.WriteLine(linebase + "Compressed size " + CompressedSize + " is greater than than the package chunk size, " + info.ChunkSizeValue.ToString() + ".");
 				}
-				else if (format.HasFlag(FileFormat.Table) && CompressedSize > ushort.MaxValue)
+				else if (info.Format == FileFormat.Table && CompressedSize > ushort.MaxValue)
 					sw.WriteLine(linebase + "Compressed size " + CompressedSize + " is greater than " + ushort.MaxValue.ToString() + ".");
 				
+				if (DecompressedSize > info.PixelLimitValue)
+					sw.WriteLine(linebase + "Decompressed size " + DecompressedSize + " is greater than " + info.PixelLimitValue.ToString() + ".");
 
-				int decompressedlimit = int.MaxValue;
-				if (format.HasFlag(FileFormat.PixelLimit4k))
-					decompressedlimit = 0x4000;
-				if (format.HasFlag(FileFormat.PixelLimit20k))
-					decompressedlimit = 0x20000;
-				else if (format.HasFlag(FileFormat.PixelLimit100k))
-					decompressedlimit = 0x100000;
-
-				if (DecompressedSize > decompressedlimit)
-					sw.WriteLine(linebase + "Decompressed size " + DecompressedSize + " is greater than " + decompressedlimit.ToString() + ".");
-
-
-				if (format.HasFlag(FileFormat.ResLimit768x512))
+				if (info.ResolutionLimit != ResolutionLimit.None &&
+					(Width > info.ResolutionLimitWidth ||
+					Height > info.ResolutionLimitHeight))
 				{
-					if (Width > 768 || Height > 512)
-						sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 768x512.");
-				}	
-				else if (format.HasFlag(FileFormat.ResLimit256x56))
-				{
-					if (Width > 256 || Height > 56)
-						sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 256x56.");
-				}	
-				else if (format.HasFlag(FileFormat.Package) && (Width > 256 || Height > 64))
-					sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, 256x64.");
+					sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, " + info.ResolutionLimitWidth + "x" + info.ResolutionLimitHeight + ".");
+				}
 
-
-				if (format.HasFlag(FileFormat.x64Char))
-				{
-					if (DisplayWidth > uint.MaxValue)
-						sw.WriteLine(linebase + "Display Width " + DisplayWidth + "is greater than " + uint.MaxValue.ToString() + ".");
-				}	
-				else if (DisplayWidth > ushort.MaxValue)
-					sw.WriteLine(linebase + "Display Width " + DisplayWidth + "is greater than " + ushort.MaxValue.ToString() + ".");
+				if (DisplayWidth > info.MaximumDisplayWidth)
+					sw.WriteLine(linebase + "Display Width " + DisplayWidth + "is greater than the maximum" + info.MaximumDisplayWidth.ToString() + ".");
 
 				return sw.ToString();
 			}
 		}
-
-
 	}
 
 }

@@ -56,10 +56,7 @@
 				<TextBlock Text="Target Format:" VerticalAlignment="Center"/>
 				<ComboBox x:Name="cmbFmt" Width="140" Margin="4,0,0,0" SelectedIndex="4"
 						  ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=SelectedItem.ToolTip}">
-					<ComboBoxItem Content="Font Table (H2X)">
-						<ComboBoxItem.Tag>
-							<cl:FileFormat>H2X</cl:FileFormat>
-						</ComboBoxItem.Tag>
+					<ComboBoxItem Content="Font Table (H2X)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H2X}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
 								<TextBlock>Halo 2 Xbox</TextBlock>
@@ -71,10 +68,7 @@
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
 					</ComboBoxItem>
-					<ComboBoxItem Content="Font Table (H2V)">
-						<ComboBoxItem.Tag>
-							<cl:FileFormat>H2V</cl:FileFormat>
-						</ComboBoxItem.Tag>
+					<ComboBoxItem Content="Font Table (H2V)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H2V}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
 								<TextBlock>Halo 2 Vista</TextBlock>
@@ -86,10 +80,7 @@
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
 					</ComboBoxItem>
-					<ComboBoxItem Content="Font Table (H3B)">
-						<ComboBoxItem.Tag>
-							<cl:FileFormat>H3B</cl:FileFormat>
-						</ComboBoxItem.Tag>
+					<ComboBoxItem Content="Font Table (H3B)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H3B}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
 								<TextBlock>Halo 3 Beta</TextBlock>
@@ -100,10 +91,7 @@
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
 					</ComboBoxItem>
-					<ComboBoxItem Content="Font Table (H2MCC)">
-						<ComboBoxItem.Tag>
-							<cl:FileFormat>H2MCC</cl:FileFormat>
-						</ComboBoxItem.Tag>
+					<ComboBoxItem Content="Font Table (H2MCC)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H2MCC}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
 								<TextBlock>Halo 2 Classic MCC</TextBlock>
@@ -115,10 +103,7 @@
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
 					</ComboBoxItem>
-					<ComboBoxItem Content="Package (Original)">
-						<ComboBoxItem.Tag>
-							<cl:FileFormat>Package</cl:FileFormat>
-						</ComboBoxItem.Tag>
+					<ComboBoxItem Content="Package (Original)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.GenericPackage}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
 								<TextBlock>Halo 3, Halo ODST, Halo Reach, Halo Online</TextBlock>
@@ -130,10 +115,7 @@
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
 					</ComboBoxItem>
-					<ComboBoxItem Content="Package (H4B)">
-						<ComboBoxItem.Tag>
-							<cl:FileFormat>H4B</cl:FileFormat>
-						</ComboBoxItem.Tag>
+					<ComboBoxItem Content="Package (H4B)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H4B}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
 								<TextBlock>Halo 4 Beta</TextBlock>
@@ -145,10 +127,7 @@
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
 					</ComboBoxItem>
-					<ComboBoxItem Content="Package (H4/H5)">
-						<ComboBoxItem.Tag>
-							<cl:FileFormat>H4</cl:FileFormat>
-						</ComboBoxItem.Tag>
+					<ComboBoxItem Content="Package (H4/H5)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H4}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
 								<TextBlock>Halo 4, Halo 5 Forge</TextBlock>
@@ -160,13 +139,10 @@
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
 					</ComboBoxItem>
-					<ComboBoxItem Content="Package (MCC)">
-						<ComboBoxItem.Tag>
-							<cl:FileFormat>MCC</cl:FileFormat>
-						</ComboBoxItem.Tag>
+					<ComboBoxItem Content="Package (MCC)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.GenericMCC}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
-								<TextBlock>Halo Reach in MCC</TextBlock>
+								<TextBlock>Halo 3, Halo ODST, Halo Reach in MCC</TextBlock>
 								<TextBlock/>
 								<TextBlock>Rules:</TextBlock>
 								<TextBlock>Maximum 64 fonts/orders.</TextBlock>
@@ -175,13 +151,25 @@
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
 					</ComboBoxItem>
-					<ComboBoxItem Content="Package (H2AMCC)">
-						<ComboBoxItem.Tag>
-							<cl:FileFormat>H2AMCC</cl:FileFormat>
-						</ComboBoxItem.Tag>
+					<ComboBoxItem Content="Package (H4MCC)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H4MCC}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
-								<TextBlock>Halo 2 Anniversay MCC</TextBlock>
+								<TextBlock>Halo 4 MCC</TextBlock>
+								<TextBlock/>
+								<TextBlock>Rules:</TextBlock>
+								<TextBlock>Maximum 64 fonts/orders.</TextBlock>
+								<TextBlock>Maximum character resolution of 768x512.</TextBlock>
+								<TextBlock>Decompressed character size limit of 0x100000 bytes.</TextBlock>
+								<TextBlock>Compressed character size limit of ~0x10000 bytes.</TextBlock>
+								<TextBlock/>
+								<TextBlock>(Its the same as H2A but uses the general MCC package version number)</TextBlock>
+							</StackPanel>
+						</ComboBoxItem.ToolTip>
+					</ComboBoxItem>
+					<ComboBoxItem Content="Package (H2AMCC)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H2AMCC}}">
+						<ComboBoxItem.ToolTip>
+							<StackPanel>
+								<TextBlock>Halo 2 Anniversary MCC</TextBlock>
 								<TextBlock/>
 								<TextBlock>Rules:</TextBlock>
 								<TextBlock>Maximum 64 fonts/orders.</TextBlock>
@@ -308,7 +296,7 @@
 		</Grid>
 
 		<TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4" Grid.Row="4">
-			Font Packager v2.1a by Zeddikins.
+			Font Packager v2.2a by Zeddikins.
 			<Hyperlink NavigateUri="https://github.com/Lord-Zedd/FontPackager" RequestNavigate="Hyperlink_RequestNavigate">
 				GitHub
 			</Hyperlink>

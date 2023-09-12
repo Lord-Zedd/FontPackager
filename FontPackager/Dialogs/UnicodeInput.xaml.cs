@@ -18,9 +18,7 @@ namespace FontPackager.Dialogs
 
 		private void Import_Click(object sender, RoutedEventArgs e)
 		{
-			ushort unic;
-
-			bool parsed = ushort.TryParse(unicbox.Text, System.Globalization.NumberStyles.HexNumber, null, out unic);
+			bool parsed = ushort.TryParse(unicbox.Text, System.Globalization.NumberStyles.HexNumber, null, out ushort unic);
 
 			if (!parsed || unic == 0xFFFF)
 			{

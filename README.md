@@ -17,13 +17,21 @@ Font Packager is a tool to open and manipulate the font-related files of blam en
 (This list includes known beta/prerelease versions.)
 - Halo 2
 - Halo 2 Vista)
+- Halo 2 MCC (PC)
+- Halo 2 Anniversary MCC (PC)
 - Halo 3
+- Halo 3 MCC (PC)
 - Halo 3 ODST
+- Halo 3 ODST MCC (PC)
 - Halo Reach
 - Halo Reach MCC (PC)
 - Halo 4
+- Halo 4 MCC (PC)
 - Halo 5 Forge (PC)
 - Halo Online
+
+## Downloading
+Precompiled builds are available through GitHub https://github.com/Lord-Zedd/FontPackager/releases
 
 # Credits
 Initial research by troymac1ure on Remnantmods http://www.remnantmods.com/forums/viewtopic.php?f=10&t=2270

@@ -31,6 +31,7 @@ namespace FontPackager
 			"Spaces and other whitespace will not display accurately in the preview, but should have a proper display width on creation.\r\n\r\n" +
 			"Drag characters from open fonts for comparisons. These will disappear when a change is made.\r\n\r\n" +
 			"For MCC don't forget to set the proper scale after import.\r\n\r\n" +
+			"Using a larger character range than default can take longer to convert.\r\n\r\n" +
 			"Also be gentle with this creation tool. It should be fine but it is previously known to crash if you spam changes. :)";
 
 		List<BlamCharacter> previewcharacters = new List<BlamCharacter>();
@@ -51,30 +52,48 @@ namespace FontPackager
 			pcfontlist.SelectedIndex = 0;
 		}
 
-		private void CreateFont()
+		private void CreateFont(bool preview)
 		{
 			prevchars.ItemsSource = null;
 			runtimefont = null;
 			ascprev.Text = "null";
 			descprev.Text = "null";
 
-			float fontsize = 8;
-			short offset = 0;
 
 			bool parsed;
 
-			parsed = float.TryParse(pcsize.Text, out fontsize);
+			parsed = float.TryParse(pcsize.Text, out float fontsize);
 			if (!parsed || fontsize <= 0)
 			{
 				MessageBox.Show("Font Size could not be parsed or is invalid.");
 				return;
 			}
 
-			parsed = short.TryParse(offsety.Text, out offset);
+			parsed = short.TryParse(offsety.Text, out short offset);
 			if (!parsed)
 			{
 				MessageBox.Show("Offset could not be parsed or is invalid.");
 				return;
+			}
+
+			ushort rngStart = 0;
+			ushort rngEnd = 0xFF;
+
+			if (!preview)
+			{
+				parsed = ushort.TryParse(rangeStart.Text, System.Globalization.NumberStyles.HexNumber, null, out rngStart);
+				if (!parsed)
+				{
+					MessageBox.Show("Range Start Character could not be parsed or is invalid.");
+					return;
+				}
+
+				parsed = ushort.TryParse(rangeEnd.Text, System.Globalization.NumberStyles.HexNumber, null, out rngEnd);
+				if (!parsed)
+				{
+					MessageBox.Show("Range End Character could not be parsed or is invalid.");
+					return;
+				}
 			}
 
 			FontFamily fam = (FontFamily)pcfontlist.SelectedItem;
@@ -100,8 +119,6 @@ namespace FontPackager
 				var d = fam.GetCellDescent(fontparams);
 				var s = fam.GetLineSpacing(fontparams);
 
-				runtimefont.KerningPairs = NativeMethods.GetKerningPairs(importfont);
-
 				float hpnt = (int)(importfont.Size * DPIHelper.DPI / 72);
 				float hpix = hpnt / em;
 				short asc = (short)(a * hpix);
@@ -115,15 +132,45 @@ namespace FontPackager
 				runtimefont.DescendHeight = desc;
 				runtimefont.LeadHeight = lmod;
 
-				for (ushort i = 0; i < 0x100; i++)
+				if (!preview)
 				{
-					BlamCharacter bc = CreateCharacter(importfont, i, (short)(asc + offset));
+					runtimefont.KerningPairs = NativeMethods.GetKerningPairs(importfont);
 
-					if (bc == null)
-						continue;
+					List<NativeMethods.FontRange> ranges = NativeMethods.GetUnicodeRangesForFont(importfont);
+					foreach (NativeMethods.FontRange range in ranges)
+					{
+						for (ushort i = range.Low; i <= range.High; i++)
+						{
+							if (i >= rngStart && i <= rngEnd)
+							{
+								BlamCharacter bc = CreateCharacter(importfont, i, (short)(asc + offset));
 
-					runtimefont.AddCharacter(bc);
+								if (bc == null)
+									continue;
+
+								runtimefont.AddCharacter(bc);
+							}
+						}
+
+					}
 				}
+				else
+				{
+					string previewstring = GetPreviewString();
+
+					var chars = previewstring.ToList().Distinct().OrderBy(c => c).ToList();
+
+					foreach(char c in chars)
+					{
+						BlamCharacter bc = CreateCharacter(importfont, c, (short)(asc + offset));
+
+						if (bc == null)
+							continue;
+
+						runtimefont.AddCharacter(bc);
+					}
+				}
+
 			}
 
 			ascprev.Text = runtimefont.AscendHeight.ToString();
@@ -175,8 +222,14 @@ namespace FontPackager
 
 				if (actualrect.Width >= 1)
 				{
-					bc.OriginX = (short)((actualrect.Left - measuredrect.Left));
-					bc.DisplayWidth = (uint)(actualrect.Width - (actualrect.Right - measuredrect.Right));
+					bc.OriginX = (short)(actualrect.Left - measuredrect.Left);
+					int mathWidth = actualrect.Width - (actualrect.Right - measuredrect.Right);
+
+					if (mathWidth > 0)
+						bc.DisplayWidth = (uint)mathWidth;
+					else
+						bc.DisplayWidth = (uint)measuredrect.Width;
+
 				}
 				else
 					bc.DisplayWidth = (uint)measuredrect.Width;
@@ -190,9 +243,7 @@ namespace FontPackager
 			if (runtimefont == null)
 				return;
 
-			string previewstring = "Font PackAger!";
-			if (!string.IsNullOrEmpty(prevstring.Text) && !string.IsNullOrWhiteSpace(prevstring.Text))
-				previewstring = prevstring.Text;
+			string previewstring = GetPreviewString();
 
 			prevchars.ItemsSource = null;
 			previewcharacters.Clear();
@@ -207,9 +258,17 @@ namespace FontPackager
 			prevchars.ItemsSource = previewcharacters;
 		}
 
+		private string GetPreviewString()
+		{
+			string previewstring = "Font PackAger!";
+			if (!string.IsNullOrEmpty(prevstring.Text) && !string.IsNullOrWhiteSpace(prevstring.Text))
+				previewstring = prevstring.Text;
+			return previewstring;
+		}
+
 		private void Import_Click(object sender, RoutedEventArgs e)
 		{
-			CreateFont();
+			CreateFont(false);
 
 			if (!string.IsNullOrEmpty(fname.Text))
 			{
@@ -226,7 +285,7 @@ namespace FontPackager
 
 		private void updatepreview_Click(object sender, RoutedEventArgs e)
 		{
-			CreateFont();
+			CreateFont(true);
 		}
 
 		private void Cancel_Click(object sender, RoutedEventArgs e)
@@ -239,9 +298,10 @@ namespace FontPackager
 			MessageBox.Show(help, "Import Help");
 		}
 
-		private void prevstring_TextChanged(object sender, TextChangedEventArgs e)
+		private void ResetRange_Click(object sender, RoutedEventArgs e)
 		{
-			UpdatePreview();
+			rangeStart.Text = "0";
+			rangeEnd.Text = "3FF";
 		}
 
 		private void prevchars_Drop(object sender, DragEventArgs e)
@@ -292,6 +352,9 @@ namespace FontPackager
 			static extern uint GetKerningPairs(IntPtr hdc, uint nNumPairs, [Out] KERNINGPAIR[] lpkrnpair);
 
 			[DllImport("gdi32.dll")]
+			static extern uint GetFontUnicodeRanges(IntPtr hdc, IntPtr lpgs);
+
+			[DllImport("gdi32.dll")]
 			static extern IntPtr SelectObject(IntPtr hdc, IntPtr hObject);
 
 			[DllImport("gdi32.dll")]
@@ -330,6 +393,47 @@ namespace FontPackager
 
 				return kp;
 			}
+
+			public struct FontRange
+			{
+				public ushort Low;
+				public ushort High;
+			}
+
+			// https://stackoverflow.com/questions/103725/is-there-a-way-to-programmatically-determine-if-a-font-file-has-a-specific-unico
+			public static List<FontRange> GetUnicodeRangesForFont(Font font)
+			{
+				List<FontRange> fontRanges = new List<FontRange>();
+
+				using (Graphics g = Graphics.FromHwnd(IntPtr.Zero))
+				{
+					g.PageUnit = GraphicsUnit.Pixel;
+					IntPtr hdc = g.GetHdc();
+					IntPtr hf = font.ToHfont();
+					IntPtr sel = SelectObject(hdc, hf);
+
+					uint size = GetFontUnicodeRanges(hdc, IntPtr.Zero);
+					IntPtr glyphSet = Marshal.AllocHGlobal((int)size);
+					GetFontUnicodeRanges(hdc, glyphSet);
+					
+					int count = Marshal.ReadInt32(glyphSet, 12);
+					for (int i = 0; i < count; i++)
+					{
+						FontRange range = new FontRange();
+						range.Low = (ushort)Marshal.ReadInt16(glyphSet, 16 + i * 4);
+						range.High = (ushort)(range.Low + Marshal.ReadInt16(glyphSet, 18 + i * 4) - 1);
+						fontRanges.Add(range);
+					}
+					SelectObject(hdc, sel);
+					Marshal.FreeHGlobal(glyphSet);
+					g.ReleaseHdc(hdc);
+					DeleteObject(hf);
+				}
+
+				return fontRanges;
+			}
+
 		}
+
 	}
 }
