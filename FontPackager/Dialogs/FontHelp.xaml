@@ -1,0 +1,51 @@
+﻿<Window x:Class="FontPackager.Dialogs.FontHelp"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FontPackager.Dialogs"
+        mc:Ignorable="d"
+        Title="Help" Height="480" Width="720">
+	<Grid Margin="4">
+		<RichTextBox ScrollViewer.VerticalScrollBarVisibility="Auto" IsReadOnly="True">
+			<RichTextBox.Document>
+				<FlowDocument>
+					<Paragraph>
+						<Run FontWeight="Bold" FontSize="16">MCC Mods:</Run>
+						<LineBreak/>
+						MCC handles fonts differently from the mod tools and the legacy games, somewhat.
+						MCC uses its Unreal Engine shell to dynamically render alphanumeric characters for ingame use, only using the legacy files for icons. Each game appears to reserve the unicode range E000-E2FF for icons. Anything outside will not be displayed.
+						<LineBreak/>
+						<LineBreak/>
+						When including modded fonts with your mod, you should place them in a path relative to MCC's root, rather than the game root. For example,
+						<Run FontWeight="Medium">[mod folder]\halo3\maps\fonts\</Run> or
+						<Run FontWeight="Medium">[mod folder]\halo2\h2_fonts\</Run>
+						<LineBreak/>
+						<LineBreak/>
+						For Halo 2, you can get away with including the same files you modified for the mod tools.
+						<LineBreak/>
+						<LineBreak/>
+						In Halo 3 and later, you will want to modify and include the
+						<Run FontWeight="Medium">font_package_icon.bin</Run> file instead as well as any _x2, _x3 and _x4 scale variants where present.
+						The scale variants are chosen depending on game resolution, so it is best to include them all. It might be best to start at the highest resolution and work downward. Using vectors if you can.
+						<LineBreak/>
+						<LineBreak/>
+						Also with H3 and later, you do not need to include any .txt or .bat files from the mod tool fonts folder with your mod, they have no purpose in MCC.
+						<LineBreak/>
+						<LineBreak/>
+						To implement your character ingame, you can double click your icon in an editor window, which will copy its unicode to the clipboard, where you can paste it into your source text file.
+						If you don't have a text file, your game's tool.exe should have a command to export an existing one or you may be able to find rips online.
+						Keep in mind only new string entries will display in MCC without modifying/including custom localization bin files, so don't simply overwrite existing strings.
+						<LineBreak/>
+						<LineBreak/>
+						<Run FontWeight="Bold" FontSize="16">Verification:</Run>
+						<LineBreak/>
+						Font Packager will verify various aspects of the current fonts and characters during saving and importing. This is to prevent any obvious crashing ingame or corruption of the resulting files.
+						There is an option to ignore the results if the only issue is with resolution, but if you choose to ignore you should double check ingame.
+					</Paragraph>
+				</FlowDocument>
+			</RichTextBox.Document>
+		</RichTextBox>
+
+	</Grid>
+</Window>

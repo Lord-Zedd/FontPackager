@@ -41,6 +41,8 @@
 					</MenuItem>
 				</MenuItem>
 
+				<MenuItem Header="Help..." Click="Help_Click" />
+
 			</Menu>
 		</Grid>
 
@@ -127,14 +129,14 @@
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
 					</ComboBoxItem>
-					<ComboBoxItem Content="Package (H4/H5)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H4}}">
+					<ComboBoxItem Content="Package (H4/H5/HI)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H4}}">
 						<ComboBoxItem.ToolTip>
 							<StackPanel>
-								<TextBlock>Halo 4, Halo 5 Forge</TextBlock>
+								<TextBlock>Halo 4, Halo 5 Forge, Halo Infinite</TextBlock>
 								<TextBlock/>
 								<TextBlock>Rules:</TextBlock>
 								<TextBlock>Maximum 64 fonts/orders.</TextBlock>
-								<TextBlock>Maximum character resolution of 256x64.</TextBlock>
+								<TextBlock>Maximum character resolution of 256x67.</TextBlock>
 								<TextBlock>Compressed character size limit of ~0xC000 bytes.</TextBlock>
 							</StackPanel>
 						</ComboBoxItem.ToolTip>
@@ -296,7 +298,7 @@
 		</Grid>
 
 		<TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4" Grid.Row="4">
-			Font Packager v2.2a by Zeddikins.
+			Font Packager v2.3 by Zeddikins.
 			<Hyperlink NavigateUri="https://github.com/Lord-Zedd/FontPackager" RequestNavigate="Hyperlink_RequestNavigate">
 				GitHub
 			</Hyperlink>

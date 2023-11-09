@@ -10,6 +10,7 @@
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
+			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
@@ -24,7 +25,9 @@
 		<TextBlock Text="0x" VerticalAlignment="Center" Grid.Row="1" Margin="0,2,2,2"/>
 		<TextBox x:Name="unicbox" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1" Margin="2,2,0,2"/>
 
-		<StackPanel Orientation="Horizontal" Grid.Row="3" Grid.ColumnSpan="2" HorizontalAlignment="Right">
+		<TextBlock Text="MCC requires icons to be within the range of E000-E2FF." TextWrapping="Wrap" VerticalAlignment="Top" Grid.Row="2" Grid.ColumnSpan="2" />
+
+		<StackPanel Orientation="Horizontal" Grid.Row="4" Grid.ColumnSpan="2" HorizontalAlignment="Right">
 			<Button x:Name="btnImport" Content="Import" Click="Import_Click"/>
 			<Button Content="Cancel" Margin="4,0,0,0" Click="Cancel_Click"/>
 		</StackPanel>

@@ -222,15 +222,28 @@ namespace FontPackager
 
 		public bool VerifyFont(FormatInformation info)
 		{
-			string result = Font.Verify(info);
+			var results = Font.Verify(info);
 
-			if (string.IsNullOrEmpty(result))
+			if (results.Count == 0)
 				return true;
 
-			ListDialog ve = new ListDialog(result, true);
-			ve.ShowDialog();
+			bool canIgnore = true;
 
-			return ve.IgnoreErrors;
+			using (StringWriter sw = new StringWriter())
+			{
+				foreach (VerificationResult res in results)
+				{
+					if (res.IsCritical)
+						canIgnore = false;
+
+					sw.WriteLine(res.Message);
+				}
+
+				ListDialog ve = new ListDialog(sw.ToString(), canIgnore);
+				ve.ShowDialog();
+
+				return ve.IgnoreErrors;
+			}
 		}
 
 		private void bg_Checked(object sender, RoutedEventArgs e)
@@ -596,8 +609,8 @@ namespace FontPackager
 				MessageBox.Show("Selected folder contains no png images.");
 				return;
 			}
-			
-			string allerrors = "";
+
+			List<VerificationResult> allresults = new List<VerificationResult>();
 
 			foreach (string s in files)
 			{
@@ -622,12 +635,13 @@ namespace FontPackager
 					continue;
 				}
 
-				string errors = newchar.Verify(((MainWindow)Application.Current.MainWindow).TargetFormat);
+				var results = newchar.Verify(((MainWindow)Application.Current.MainWindow).TargetFormat);
 
-				if (!string.IsNullOrEmpty(errors))
+				if (results.Count > 0)
 				{
 					badverifycount++;
-					allerrors += errors;
+
+					allresults.AddRange(results);
 					continue;
 				}
 
@@ -644,13 +658,24 @@ namespace FontPackager
 			if (badconvertcount > 0)
 				badconvert = "\r\n" + badconvertcount + " characters could not be converted and were not added.";
 			string badverify = "";
-			if (!string.IsNullOrEmpty(allerrors))
-				badverify = "\r\n" + badverifycount + " characters failed verification. The errors returned were:\r\n";
+			if (allresults.Count > 0)
+			{
+				using (StringWriter sw = new StringWriter())
+				{
+					sw.WriteLine();
+					sw.WriteLine($"{badverifycount} characters failed verification and were not added. These may be able to be added manually depending on the error. The errors returned were:");
+					foreach (VerificationResult res in allresults)
+						sw.WriteLine(res.Message);
+
+					badverify = sw.ToString();
+				}
+			}
+				
 			UpdateCharacterList();
 
 			ListDialog ve = new ListDialog("Batch Add",
 				"Batch add completed.\r\n" + successcount + " characters were added/replaced successfully. Any errors, if any will appear below:",
-				badname + badconvert + badverify + allerrors, false);
+				badname + badconvert + badverify, false);
 			ve.ShowDialog();
 		}
 
@@ -696,14 +721,28 @@ namespace FontPackager
 				return;
 			}
 			
-			string errors = newchar.Verify(((MainWindow)Application.Current.MainWindow).TargetFormat);
+			var results = newchar.Verify(((MainWindow)Application.Current.MainWindow).TargetFormat);
 
-			if (!string.IsNullOrEmpty(errors))
+			if (results.Count > 0)
 			{
-				ListDialog ve = new ListDialog(errors, true);
-				ve.ShowDialog();
-				if (!ve.IgnoreErrors)
-					return;
+				bool canIgnore = true;
+
+				using (StringWriter sw = new StringWriter())
+				{
+					foreach (VerificationResult res in results)
+					{
+						if (res.IsCritical)
+							canIgnore = false;
+
+						sw.WriteLine(res.Message);
+					}
+
+					ListDialog ve = new ListDialog(sw.ToString(), canIgnore);
+					ve.ShowDialog();
+
+					if (!ve.IgnoreErrors)
+						return;
+				}
 			}
 
 			Font.AddCharacter(newchar);

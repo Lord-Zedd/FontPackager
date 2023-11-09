@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using System.IO;
+using System.Collections.Generic;
 
 namespace FontPackager.Classes
 {
@@ -110,38 +111,32 @@ namespace FontPackager.Classes
 		}
 
 		/// <summary>
-		/// Verifies this <see cref="BlamCharacter"/> against the given <see cref="FormatInformation"/> and translates the results to a readable format.
+		/// Verifies this <see cref="BlamCharacter"/> against the given <see cref="FormatInformation"/>.
 		/// </summary>
-		/// <returns>Any found errors, or an empty string.</returns>
-		public string Verify(FormatInformation info)
+		/// <returns>Any found errors.</returns>
+		public List<VerificationResult> Verify(FormatInformation info)
 		{
-			using (StringWriter sw = new StringWriter())
-			{
-				string linebase = UnicIndex.ToString("X4") + ": ";
+			List<VerificationResult> results = new List<VerificationResult>();
 
-				if (info.Format == FileFormat.Package)
-				{
-					if (CompressedSize > (info.ChunkSizeValue - 8 - info.PackageCharacterInfoLength - 4))
-						sw.WriteLine(linebase + "Compressed size " + CompressedSize + " is greater than than the package chunk size, " + info.ChunkSizeValue.ToString() + ".");
-				}
-				else if (info.Format == FileFormat.Table && CompressedSize > ushort.MaxValue)
-					sw.WriteLine(linebase + "Compressed size " + CompressedSize + " is greater than " + ushort.MaxValue.ToString() + ".");
-				
-				if (DecompressedSize > info.PixelLimitValue)
-					sw.WriteLine(linebase + "Decompressed size " + DecompressedSize + " is greater than " + info.PixelLimitValue.ToString() + ".");
+			string prefix = $"{UnicIndex:X4}: ";
 
-				if (info.ResolutionLimit != ResolutionLimit.None &&
-					(Width > info.ResolutionLimitWidth ||
-					Height > info.ResolutionLimitHeight))
-				{
-					sw.WriteLine(linebase + "Dimensions " + Width + "x" + Height + " are greater than the maximum, " + info.ResolutionLimitWidth + "x" + info.ResolutionLimitHeight + ".");
-				}
+			if (info.Format == FileFormat.Package && CompressedSize > (info.ChunkSizeValue - 8 - info.PackageCharacterInfoLength - 4))
+				results.Add(new VerificationResult($"{prefix} Compressed size {CompressedSize:X} is greater than the package chunk size {info.ChunkSizeValue:X} for the selected format.", true));
+			else if (info.Format == FileFormat.Table && CompressedSize > ushort.MaxValue)
+				results.Add(new VerificationResult($"{prefix} Compressed size {CompressedSize:X} is greater than the max value of {ushort.MaxValue:X}.", true));
 
-				if (DisplayWidth > info.MaximumDisplayWidth)
-					sw.WriteLine(linebase + "Display Width " + DisplayWidth + "is greater than the maximum" + info.MaximumDisplayWidth.ToString() + ".");
+			if (DecompressedSize > info.PixelLimitValue)
+				results.Add(new VerificationResult($"{prefix} Decompressed size {DecompressedSize:X} is greater than the known engine limit of {info.PixelLimitValue:X}.", true));
 
-				return sw.ToString();
-			}
+			if (info.ResolutionLimit != ResolutionLimit.None &&
+				(Width > info.ResolutionLimitWidth ||
+				Height > info.ResolutionLimitHeight))
+				results.Add(new VerificationResult($"{prefix} Dimensions {Width}x{Height} are greater than the visible maximum {info.ResolutionLimitWidth}x{info.ResolutionLimitHeight}. This can be ignored but may not display ingame.", false));
+
+			if (DisplayWidth > info.MaximumDisplayWidth)
+				results.Add(new VerificationResult($"{prefix} Display Width {DisplayWidth} is greater than the max value of {info.MaximumDisplayWidth}.", true));
+
+			return results;
 		}
 	}
 

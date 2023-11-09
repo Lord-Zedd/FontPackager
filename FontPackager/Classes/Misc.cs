@@ -73,4 +73,16 @@ namespace FontPackager.Classes
 			Font = font;
 		}
 	}
+
+	public class VerificationResult
+	{
+		public bool IsCritical { get; set; }
+		public string Message { get; set; }
+
+		public VerificationResult(string msg, bool crit)
+		{
+			Message = msg;
+			IsCritical = crit;
+		}
+	}
 }

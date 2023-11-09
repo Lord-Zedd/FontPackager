@@ -60,6 +60,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="Dialogs\FontHelp.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Dialogs\FontImport.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
@@ -100,6 +104,9 @@
     <Compile Include="Classes\TagIO.cs" />
     <Compile Include="Classes\PackageIO.cs" />
     <Compile Include="Classes\Misc.cs" />
+    <Compile Include="Dialogs\FontHelp.xaml.cs">
+      <DependentUpon>FontHelp.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Dialogs\FontImport.xaml.cs">
       <DependentUpon>FontImport.xaml</DependentUpon>
     </Compile>

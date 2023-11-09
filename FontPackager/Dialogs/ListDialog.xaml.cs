@@ -13,7 +13,7 @@ namespace FontPackager.Dialogs
 		{
 			InitializeComponent();
 			Title = "Verification Errors Found";
-			msgtxt.Text = "The current action failed verification and could not be completed. Details below:";
+			msgtxt.Text = "The current action failed verification and could not be completed. Depending on the error you may be able to ignore it, but may not display correctly ingame. Details below:";
 			resulttxt.Text = results;
 			IgnoreErrors = false;
 			if (showIgnore) ignorebtn.Visibility = Visibility.Visible;

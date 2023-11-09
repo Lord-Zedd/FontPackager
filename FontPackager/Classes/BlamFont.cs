@@ -149,38 +149,33 @@ namespace FontPackager.Classes
 		}
 
 		/// <summary>
-		/// Verifies this <see cref="BlamFont"/> against the given <see cref="FormatInformation"/> and translates the results to a readable format.
+		/// Verifies this <see cref="BlamFont"/> against the given <see cref="FormatInformation"/>.
 		/// </summary>
-		/// <returns>Any found errors, or an empty string.</returns>
-		public string Verify(FormatInformation info)
+		/// <returns>Any found errors.</returns>
+		public List<VerificationResult> Verify(FormatInformation info)
 		{
-			using (StringWriter sw = new StringWriter())
+			long compressedsize = 0;
+			long decompressedsize = 0;
+			List<VerificationResult> results = new List<VerificationResult>();
+
+			foreach (BlamCharacter bc in Characters)
 			{
-				long compressedsize = 0;
-				long decompressedsize = 0;
+				results.AddRange(bc.Verify(info));
 
-				foreach (BlamCharacter bc in Characters)
-				{
-					string cr = bc.Verify(info);
-
-					compressedsize += bc.CompressedSize;
-					decompressedsize += bc.DecompressedSize / (info.Format == FileFormat.Table ? 4 : 2);
-
-					if (!string.IsNullOrEmpty(cr))
-						sw.Write("Character: " + cr);
-				}
-
-				if (KerningPairs.Count > 0xFF)
-					sw.WriteLine("Header: Kerning pair count " + KerningPairs.Count + " is greater than 255.");
-
-				if (compressedsize > uint.MaxValue)
-					sw.WriteLine("Header: Sum of compressed character data " + compressedsize.ToString() + " is greater than " + uint.MaxValue.ToString() + ".");
-
-				if (decompressedsize > uint.MaxValue)
-					sw.WriteLine("Header: Sum of decompressed character data " + decompressedsize.ToString() + " is greater than " + uint.MaxValue.ToString() + ".");
-
-				return sw.ToString();
+				compressedsize += bc.CompressedSize;
+				decompressedsize += bc.DecompressedSize / (info.Format == FileFormat.Table ? 4 : 2);
 			}
+
+			if (KerningPairs.Count > 0xFF)
+				results.Add(new VerificationResult($"Header: Kerning Pair Count {KerningPairs.Count} is greater than the max of 255.", true));
+
+			if (compressedsize > uint.MaxValue)
+				results.Add(new VerificationResult($"Header: Sum of compressed character data {compressedsize:X} is greater than the max value of {uint.MaxValue:X}.", true));
+
+			if (decompressedsize > uint.MaxValue)
+				results.Add(new VerificationResult($"Header: Sum of decompressed character data {decompressedsize:X} is greater than the max value of {uint.MaxValue:X}", true));
+
+			return results;
 		}
 	}
 

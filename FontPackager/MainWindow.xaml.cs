@@ -86,15 +86,22 @@ namespace FontPackager
 		public bool VerifyFonts(FormatInformation info)
 		{
 			string result = "";
+			bool canIgnore = true;
 			using (StringWriter sw = new StringWriter())
 			{
 				foreach (BlamFont font in Fonts)
 				{
-					string f = font.Verify(info);
-					if (!string.IsNullOrEmpty(f))
+					var results = font.Verify(info);
+					if (results.Count > 0)
 					{
 						sw.WriteLine("~" + font.Name);
-						sw.Write(f);
+						foreach (VerificationResult res in results)
+						{
+							sw.WriteLine(res.Message);
+							if (res.IsCritical)
+								canIgnore = false;
+						}
+							
 						sw.WriteLine();
 					}
 				}
@@ -105,7 +112,7 @@ namespace FontPackager
 			if (string.IsNullOrEmpty(result))
 				return true;
 
-			ListDialog ve = new ListDialog(result, true);
+			ListDialog ve = new ListDialog(result, canIgnore);
 			ve.ShowDialog();
 
 			return ve.IgnoreErrors;
@@ -588,6 +595,12 @@ namespace FontPackager
 			fc.Closing += FontCreator_Closing;
 			fc.Owner = this;
 			fc.Show();
+		}
+
+		private void Help_Click(object sender, RoutedEventArgs e)
+		{
+			FontHelp help = new FontHelp();
+			help.ShowDialog();
 		}
 
 		#endregion

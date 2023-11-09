@@ -63,8 +63,9 @@ namespace FontPackager.Classes
 	{
 		None,
 		Limit256x64,
+		Limit256x67,
 		Limit256x56,
-		Limit768x512
+		Limit784x512
 	}
 
 	/// <summary>
@@ -204,8 +205,8 @@ namespace FontPackager.Classes
 					case ResolutionLimit.Limit256x56:
 					case ResolutionLimit.Limit256x64:
 						return 256;
-					case ResolutionLimit.Limit768x512:
-						return 768;
+					case ResolutionLimit.Limit784x512:
+						return 784;
 
 				}
 			}
@@ -227,7 +228,7 @@ namespace FontPackager.Classes
 						return 56;
 					case ResolutionLimit.Limit256x64:
 						return 64;
-					case ResolutionLimit.Limit768x512:
+					case ResolutionLimit.Limit784x512:
 						return 512;
 
 				}
@@ -276,20 +277,20 @@ namespace FontPackager.Classes
 		/// <summary>
 		/// Halo 4 (360), Halo 5 Forge (PC, is barely used by the game)
 		/// </summary>
-		public static FormatInformation H4 { get; } = new FormatInformation(FileFormat.Package, FormatFlags.Max64Fonts, ChunkSize.SizeC000, PixelLimit.None, ResolutionLimit.Limit256x64);
+		public static FormatInformation H4 { get; } = new FormatInformation(FileFormat.Package, FormatFlags.Max64Fonts, ChunkSize.SizeC000, PixelLimit.None, ResolutionLimit.Limit256x67);
 
 		/// <summary>
 		/// Halo 3, ODST, Reach. (MCC)
 		/// </summary>
-		public static FormatInformation GenericMCC { get; } = new FormatInformation(FileFormat.Package, FormatFlags.MCC, ChunkSize.SizeC000, PixelLimit.None, ResolutionLimit.Limit768x512);
+		public static FormatInformation GenericMCC { get; } = new FormatInformation(FileFormat.Package, FormatFlags.MCC, ChunkSize.SizeC000, PixelLimit.None, ResolutionLimit.Limit784x512);
 		/// <summary>
 		/// Halo 2 Anniversary Multiplayer (MCC)
 		/// </summary>
-		public static FormatInformation H2AMCC { get; } = new FormatInformation(FileFormat.Package, FormatFlags.Groundhog, ChunkSize.Size10000, PixelLimit.Limit100000, ResolutionLimit.Limit768x512);
+		public static FormatInformation H2AMCC { get; } = new FormatInformation(FileFormat.Package, FormatFlags.Groundhog, ChunkSize.Size10000, PixelLimit.Limit100000, ResolutionLimit.Limit784x512);
 		/// <summary>
 		/// Halo 4 (MCC)
 		/// </summary>
-		public static FormatInformation H4MCC { get; } = new FormatInformation(FileFormat.Package, FormatFlags.H4MCC, ChunkSize.Size10000, PixelLimit.None, ResolutionLimit.Limit768x512);
+		public static FormatInformation H4MCC { get; } = new FormatInformation(FileFormat.Package, FormatFlags.H4MCC, ChunkSize.Size10000, PixelLimit.Limit100000, ResolutionLimit.Limit784x512);
 		#endregion
 
 		#region overrides
