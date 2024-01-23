@@ -14,7 +14,7 @@
 						<Run FontWeight="Bold" FontSize="16">MCC Mods:</Run>
 						<LineBreak/>
 						MCC handles fonts differently from the mod tools and the legacy games, somewhat.
-						MCC uses its Unreal Engine shell to dynamically render alphanumeric characters for ingame use, only using the legacy files for icons. Each game appears to reserve the unicode range E000-E2FF for icons. Anything outside will not be displayed.
+						MCC uses its Unreal Engine shell to dynamically render alphanumeric characters for ingame use, only using the legacy files for icons. Each game appears to reserve the unicode range E000-E2FF for icons. Anything outside will not be displayed. However, due to H2 Vista adding keyboard key backgrounds, the range of E132-E3FF does not apply any HUD/UI colors and will be rendered as-is.
 						<LineBreak/>
 						<LineBreak/>
 						When including modded fonts with your mod, you should place them in a path relative to MCC's root, rather than the game root. For example,
