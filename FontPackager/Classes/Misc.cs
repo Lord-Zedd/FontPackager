@@ -85,4 +85,132 @@ namespace FontPackager.Classes
 			IsCritical = crit;
 		}
 	}
+
+	class BigEndianReader : BinaryReader
+	{
+		private byte[] buffer = new byte[8];
+
+		public BigEndianReader(Stream stream) : base(stream) { }
+
+		public override short ReadInt16()
+		{
+			buffer = base.ReadBytes(2);
+			Array.Reverse(buffer, 0, 2);
+			return BitConverter.ToInt16(buffer, 0);
+		}
+
+		public override int ReadInt32()
+		{
+			buffer = base.ReadBytes(4);
+			Array.Reverse(buffer, 0 , 4);
+			return BitConverter.ToInt32(buffer, 0);
+		}
+
+		public override long ReadInt64()
+		{
+			buffer = base.ReadBytes(8);
+			Array.Reverse(buffer);
+			return BitConverter.ToInt64(buffer, 0);
+		}
+
+		public override ushort ReadUInt16()
+		{
+			buffer = base.ReadBytes(2);
+			Array.Reverse(buffer, 0, 2);
+			return BitConverter.ToUInt16(buffer, 0);
+		}
+
+		public override uint ReadUInt32()
+		{
+			buffer = base.ReadBytes(4);
+			Array.Reverse(buffer, 0 , 4);
+			return BitConverter.ToUInt32(buffer, 0);
+		}
+
+		public override float ReadSingle()
+		{
+			buffer = base.ReadBytes(4);
+			Array.Reverse(buffer, 0 , 4);
+			return BitConverter.ToSingle(buffer, 0);
+		}
+
+		public override ulong ReadUInt64()
+		{
+			buffer = base.ReadBytes(8);
+			Array.Reverse(buffer);
+			return BitConverter.ToUInt64(buffer, 0);
+		}
+
+		public override double ReadDouble()
+		{
+			buffer = base.ReadBytes(8);
+			Array.Reverse(buffer);
+			return BitConverter.ToUInt64(buffer, 0);
+		}
+	}
+
+	public class BigEndianWriter : BinaryWriter
+	{
+		private byte[] buffer = new byte[8];
+
+		public BigEndianWriter(Stream stream) : base(stream) { }
+
+		public override void Write(short value)
+		{
+			buffer = BitConverter.GetBytes(value);
+			Array.Reverse(buffer, 0, 2);
+			base.Write(buffer, 0, 2);
+		}
+
+		public override void Write(int value)
+		{
+			buffer = BitConverter.GetBytes(value);
+			Array.Reverse(buffer, 0, 4);
+			base.Write(buffer, 0, 4);
+		}
+
+		public override void Write(long value)
+		{
+			buffer = BitConverter.GetBytes(value);
+			Array.Reverse(buffer);
+			base.Write(buffer);
+		}
+
+		public override void Write(ushort value)
+		{
+			buffer = BitConverter.GetBytes(value);
+			Array.Reverse(buffer, 0, 2);
+			base.Write(buffer, 0, 2);
+		}
+
+		public override void Write(uint value)
+		{
+			buffer = BitConverter.GetBytes(value);
+			Array.Reverse(buffer, 0, 4);
+			base.Write(buffer, 0, 4);
+		}
+
+		public override void Write(ulong value)
+		{
+			buffer = BitConverter.GetBytes(value);
+			Array.Reverse(buffer);
+			base.Write(buffer);
+		}
+
+		public override void Write(float value)
+		{
+			buffer = BitConverter.GetBytes(value);
+			Array.Reverse(buffer, 0, 4);
+			base.Write(buffer, 0, 4);
+		}
+
+		public override void Write(double value)
+		{
+			buffer = BitConverter.GetBytes(value);
+			Array.Reverse(buffer);
+			base.Write(buffer);
+		}
+	}
+
+
 }

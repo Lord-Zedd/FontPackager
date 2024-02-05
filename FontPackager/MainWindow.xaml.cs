@@ -303,7 +303,7 @@ namespace FontPackager
 				return null;
 
 			string filename = ofd.FileName;
-			var res = TagIO.Read(ofd.FileName);
+			var res = TagIO.ReadCacheFile(ofd.FileName);
 
 			switch (res.Item1)
 			{
@@ -320,6 +320,45 @@ namespace FontPackager
 					MessageBox.Show("An unknown error occurred loading cache \"" + ofd.SafeFileName + "\".");
 					return null;
 			}
+		}
+
+		private static List<BlamFont> OpenAndImportFontTags()
+		{
+			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Open Cache File",
+				Filter = "Halo CE Cache File (*.font)|*.font",
+				Multiselect = true
+			};
+			if (!(bool)ofd.ShowDialog())
+				return null;
+
+			List<BlamFont> fonts = new List<BlamFont>();
+
+			foreach (string fn in ofd.FileNames)
+			{
+				var res = TagIO.ReadTag(fn);
+
+				switch (res.Item1)
+				{
+					case IOError.None:
+						fonts.Add(res.Item2);
+						break;
+					case IOError.BadVersion:
+						MessageBox.Show("Font \"" + Path.GetFileName(fn) + "\" had an invalid header version value and was not loaded.");
+						break;
+					default:
+						MessageBox.Show("An unknown error occurred loading font file \"" + Path.GetFileName(fn) + "\".");
+						break;
+				}
+				continue;
+			}
+
+			if (fonts.Count == 0)
+				return null;
+
+			return fonts;
 		}
 
 		private static Tuple<string, List<BlamFont>> OpenAndImportDirectory()
@@ -349,7 +388,6 @@ namespace FontPackager
 						return null;
 				}
 			}
-
 		}
 		#endregion
 
@@ -557,6 +595,16 @@ namespace FontPackager
 
 						filename = res.Item1;
 						fonts = res.Item2;
+					}
+					break;
+				case "tag":
+					{
+						var res = OpenAndImportFontTags();
+						if (res == null)
+							return;
+
+						skipdialog = true;
+						fonts = res;
 					}
 					break;
 				default:

@@ -199,6 +199,10 @@ namespace FontPackager
 				case "h2mcc":
 					SaveLoose(FormatInformation.H2MCC);
 					break;
+
+				case "ce":
+					SaveTag();
+					break;
 			}
 		}
 
@@ -218,6 +222,21 @@ namespace FontPackager
 				return;
 
 			TableIO.WriteLooseFile(Font, sfd.FileName, info);
+		}
+
+		private void SaveTag()
+		{
+			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			{
+				RestoreDirectory = true,
+				Title = "Save Font Tag",
+				Filter = "Font Tag (*.font)|*.font",
+				FileName = Font.SanitizedName
+			};
+			if (!(bool)sfd.ShowDialog())
+				return;
+
+			TagIO.WriteTag(Font, sfd.FileName);
 		}
 
 		public bool VerifyFont(FormatInformation info)

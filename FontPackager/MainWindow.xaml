@@ -38,6 +38,7 @@
 						<MenuItem Header="Font Table Fonts..." Tag="table" Click="btnImport_Click" ToolTip="Open a font_table.txt file to select fonts from."/>
 						<MenuItem Header="Loose Font(s)..." Tag="loose" Click="btnImport_Click" ToolTip="Import one or more loose H2 font files."/>
 						<MenuItem Header="Cache File Fonts..." Tag="cache" Click="btnImport_Click" ToolTip="Open an Xbox Halo CE format cache file to select fonts from."/>
+						<MenuItem Header="Font Tags..." Tag="tag" Click="btnImport_Click" ToolTip="Open one or more CE font tags."/>
 					</MenuItem>
 				</MenuItem>
 
