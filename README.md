@@ -1,4 +1,4 @@
-# Font Packager v2
+# Font Packager v2.3
 Blam Engine Font File Editor
 
 Font Packager is a tool to open and manipulate the font-related files of blam engine games starting with Halo 2.
@@ -12,9 +12,11 @@ Font Packager is a tool to open and manipulate the font-related files of blam en
   - Including the Xbox versions of Halo CE, Stubbs The Zombie, and the Shadowrun Prototype.
 - Per-game error checking to attempt to prevent issues in-game.
 - Save between any supported formats.
+  - Including Halo CE tag files for Custom Edition and MCC.
 
 ## Currently Supported Titles
 (This list includes known beta/prerelease versions.)
+- Halo CE (Xbox Cache Files, PC Tags)
 - Halo 2
 - Halo 2 Vista)
 - Halo 2 MCC (PC)
@@ -29,6 +31,7 @@ Font Packager is a tool to open and manipulate the font-related files of blam en
 - Halo 4 MCC (PC)
 - Halo 5 Forge (PC)
 - Halo Online
+- Halo Infinite
 
 ## Downloading
 Precompiled builds are available through GitHub https://github.com/Lord-Zedd/FontPackager/releases
