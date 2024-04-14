@@ -149,6 +149,31 @@ namespace FontPackager.Classes
 		}
 
 		/// <summary>
+		/// Tries to find the relevant kerning pair value for the given characters.
+		/// </summary>
+		/// <param name="sourceChar">The left character in the pair.</param>
+		/// <param name="targetChar">The right character in the pair.</param>
+		/// <param name="value">The resulting kering pair value, if it exists.</param>
+		/// <returns>If a kerning pair was found.</returns>
+		public bool TryFindKerningValue(ushort sourceChar, ushort targetChar, out int value)
+		{
+			value = 0;
+			if (sourceChar > byte.MaxValue || targetChar > byte.MaxValue)
+				return false;
+
+			var kp = KerningPairs.Where(k => k.Character == (byte)sourceChar);
+			foreach (KerningPair k in kp)
+			{
+				if (k.TargetCharacter == targetChar)
+				{
+					value = k.Value;
+					return true;
+				}	
+			}
+			return false;
+		}
+
+		/// <summary>
 		/// Verifies this <see cref="BlamFont"/> against the given <see cref="FormatInformation"/>.
 		/// </summary>
 		/// <returns>Any found errors.</returns>

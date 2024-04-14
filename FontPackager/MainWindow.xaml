@@ -221,12 +221,13 @@
 									<TextBlock Text="{Binding Name, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}" />
 									<TextBlock/>
 									<TextBlock>Kerning Pairs: <Run Text="{Binding KerningPairs.Count, Mode=OneWay, StringFormat={}{0:D}}"/></TextBlock>
-									<TextBlock Text="Double-Click to open the editor, or drag to reorder." />
+									<TextBlock Text="Double-Click to open the editor, or drag to reorder. Right click for more options." />
 								</StackPanel>
 							</Grid.ToolTip>
 							<Grid.ContextMenu>
 								<ContextMenu>
-									<MenuItem Header="Remove Font" Click="MenuItem_Click"/>
+									<MenuItem Header="Remove Font" Click="RemoveFont_Click"/>
+									<MenuItem Header="Print Font..." Click="PrintFont_Click"/>
 								</ContextMenu>
 							</Grid.ContextMenu>
 
@@ -299,7 +300,7 @@
 		</Grid>
 
 		<TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4" Grid.Row="4">
-			Font Packager v2.3 by Zeddikins.
+			Font Packager v2.4 by Zeddikins.
 			<Hyperlink NavigateUri="https://github.com/Lord-Zedd/FontPackager" RequestNavigate="Hyperlink_RequestNavigate">
 				GitHub
 			</Hyperlink>

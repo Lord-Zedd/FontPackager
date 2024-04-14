@@ -13,6 +13,7 @@ Font Packager is a tool to open and manipulate the font-related files of blam en
 - Per-game error checking to attempt to prevent issues in-game.
 - Save between any supported formats.
   - Including Halo CE tag files for Custom Edition and MCC.
+- Write text using game fonts to a PNG image.
 
 ## Currently Supported Titles
 (This list includes known beta/prerelease versions.)

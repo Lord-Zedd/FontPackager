@@ -27,7 +27,7 @@ namespace FontPackager
 
 		private string LastFilePath = "";
 
-		private List<FontEditor> OpenEditors;
+		private List<Window> ChildWindows;
 
 		bool isdropping_reorder = false;
 		FontCreator fc = null;
@@ -35,11 +35,10 @@ namespace FontPackager
 		public MainWindow()
 		{
 			InitializeComponent();
-			OpenEditors = new List<FontEditor>();
+			ChildWindows = new List<Window>();
 		}
 
 		#region general
-
 		private void CopyCollection(BlamFont font)
 		{
 			CopyCollection(new List<BlamFont>() { font });
@@ -118,15 +117,15 @@ namespace FontPackager
 			return ve.IgnoreErrors;
 		}
 
-		private void CloseEditors()
+		private void CloseChildWindows()
 		{
-			foreach (FontEditor e in OpenEditors)
+			foreach (Window e in ChildWindows)
 			{
-				e.Closing -= Editor_Closing;
+				e.Closing -= Child_Closing;
 				e.Close();
 			}
 
-			OpenEditors.Clear();
+			ChildWindows.Clear();
 		}
 
 		private void ClearLists()
@@ -143,14 +142,12 @@ namespace FontPackager
 			Fonts = new ObservableCollection<BlamFont>();
 			EngineOrdering = new ObservableCollection<EngineOrderItem>();
 		}
-
 		#endregion
 
 		#region loading
 		private void FinishLoading(FormatInformation info, List<BlamFont> fonts, List<int> orders)
 		{
-			CloseEditors();
-
+			CloseChildWindows();
 			ClearLists();
 
 			if (info == FormatInformation.H2X)
@@ -449,7 +446,6 @@ namespace FontPackager
 
 			return true;
 		}
-
 		#endregion
 
 		#region menus
@@ -463,8 +459,7 @@ namespace FontPackager
 					return;
 			}
 
-			CloseEditors();
-
+			CloseChildWindows();
 			ClearLists();
 
 			fname.Text = string.Empty;
@@ -650,12 +645,11 @@ namespace FontPackager
 			FontHelp help = new FontHelp();
 			help.ShowDialog();
 		}
-
 		#endregion
 
 		private void window_Closing(object sender, CancelEventArgs e)
 		{
-			CloseEditors();
+			CloseChildWindows();
 		}
 
 		private void FontCreator_Closing(object sender, CancelEventArgs e)
@@ -685,7 +679,7 @@ namespace FontPackager
 			if (listfonts.SelectedIndex == -1)
 				return;
 
-			FontEditor existing = OpenEditors.FirstOrDefault(x => x.Font == Fonts[listfonts.SelectedIndex]);
+			FontEditor existing = ChildWindows.OfType<FontEditor>().FirstOrDefault(x => x.Font == Fonts[listfonts.SelectedIndex]);
 			if (existing != null)
 			{
 				existing.Focus();
@@ -693,19 +687,37 @@ namespace FontPackager
 			}
 			
 			FontEditor editor = new FontEditor(Fonts[listfonts.SelectedIndex]);
-			OpenEditors.Add(editor);
-			editor.Closing += Editor_Closing;
+			ChildWindows.Add(editor);
+			editor.Closing += Child_Closing;
 			editor.Show();
 		}
 
-		private void Editor_Closing(object sender, CancelEventArgs e)
+		private void Child_Closing(object sender, CancelEventArgs e)
 		{
-			OpenEditors.Remove((FontEditor)sender);
+			ChildWindows.Remove((Window)sender);
 		}
 
-		private void MenuItem_Click(object sender, RoutedEventArgs e)
+		private void RemoveFont_Click(object sender, RoutedEventArgs e)
 		{
 			RemoveSelectedFont();	
+		}
+
+		private void PrintFont_Click(object sender, RoutedEventArgs e)
+		{
+			if (listfonts.SelectedIndex == -1)
+				return;
+
+			FontPrinter existing = ChildWindows.OfType<FontPrinter>().FirstOrDefault(x => x.Font == Fonts[listfonts.SelectedIndex]);
+			if (existing != null)
+			{
+				existing.Focus();
+				return;
+			}
+
+			FontPrinter printer = new FontPrinter(Fonts[listfonts.SelectedIndex]);
+			ChildWindows.Add(printer);
+			printer.Closing += Child_Closing;
+			printer.Show();
 		}
 
 		private void RemoveSelectedFont()
@@ -714,7 +726,15 @@ namespace FontPackager
 				return;
 
 			BlamFont f = (BlamFont)listfonts.SelectedItem;
-			var res = MessageBox.Show("This will remove " + f.Name + " from the current collection and cannot be undone. Continue?", "Confirm Remove", MessageBoxButton.OKCancel);
+
+			FontEditor editor = ChildWindows.OfType<FontEditor>().FirstOrDefault(x => x.Font == f);
+			FontPrinter printer = ChildWindows.OfType<FontPrinter>().FirstOrDefault(x => x.Font == f);
+
+			string windowsopen = "";
+			if (editor != null || printer != null)
+				windowsopen = " There is currently an editor and/or printer window open for this font, these windows will be closed.";
+
+			var res = MessageBox.Show("This will remove " + f.Name + " from the current collection and cannot be undone." + windowsopen + " Continue?", "Confirm Remove", MessageBoxButton.OKCancel);
 
 			if (res != MessageBoxResult.OK)
 				return;
@@ -725,12 +745,18 @@ namespace FontPackager
 					EngineOrdering[i].Font = null;
 			}
 
-			FontEditor editor = OpenEditors.FirstOrDefault(x => x.Font == f);
 			if (editor != null)
 			{
-				editor.Closing -= Editor_Closing;
+				editor.Closing -= Child_Closing;
 				editor.Close();
-				OpenEditors.Remove(editor);
+				ChildWindows.Remove(editor);
+			}
+
+			if (printer != null)
+			{
+				printer.Closing -= Child_Closing;
+				printer.Close();
+				ChildWindows.Remove(printer);
 			}
 
 			Fonts.Remove(f);
@@ -867,7 +893,6 @@ namespace FontPackager
 
 			RefreshOrderList();
 		}
-
 		#endregion
 
 	}

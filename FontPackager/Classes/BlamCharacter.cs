@@ -138,6 +138,34 @@ namespace FontPackager.Classes
 
 			return results;
 		}
+
+		/// <summary>
+		/// Clones this <see cref="BlamCharacter"/> to a new instance, with copies of <see cref="CompressedData"/> and <see cref="DecompressedData"/>
+		/// </summary>
+		/// <returns>A fresh clone of the <see cref="BlamCharacter"/> which this method was called from.</returns>
+		public BlamCharacter Clone()
+		{
+			BlamCharacter result = new BlamCharacter(UnicIndex);
+			result.DisplayWidth = DisplayWidth;
+			result.Width = Width;
+			result.Height = Height;
+			result.OriginX = OriginX;
+			result.OriginY = OriginY;
+
+			if (CompressedData != null)
+			{
+				result.CompressedData = new byte[CompressedData.Length];
+				Array.Copy(CompressedData, result.CompressedData, CompressedData.Length);
+			}
+			
+			if (DecompressedData != null)
+			{
+				result.DecompressedData = new byte[DecompressedData.Length];
+				Array.Copy(DecompressedData, result.DecompressedData, DecompressedData.Length);
+			}
+
+			return result;
+		}
 	}
 
 }
