@@ -306,7 +306,7 @@ namespace FontPackager.Classes
 			if (bottom < top)
 				bottom = top + 1;
 
-			return Rectangle.FromLTRB(left, top, right, bottom);
+			return Rectangle.FromLTRB(left, top, right + 1, bottom + 1);
 		}
 
 		/// <summary>
