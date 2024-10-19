@@ -4,7 +4,6 @@ using System.Text;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
-using System.IO;
 using System.Collections.Generic;
 
 namespace FontPackager.Classes

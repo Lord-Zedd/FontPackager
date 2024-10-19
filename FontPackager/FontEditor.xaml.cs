@@ -12,6 +12,7 @@ using FontPackager.Dialogs;
 using FontPackager.Classes;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Microsoft.Win32;
 
 namespace FontPackager
 {
@@ -208,7 +209,7 @@ namespace FontPackager
 
 		private void SaveLoose(FormatInformation info)
 		{
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			SaveFileDialog sfd = new SaveFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Save Font File",
@@ -226,7 +227,7 @@ namespace FontPackager
 
 		private void SaveTag()
 		{
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			SaveFileDialog sfd = new SaveFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Save Font Tag",
@@ -533,7 +534,7 @@ namespace FontPackager
 
 		private void ExtractChar_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			SaveFileDialog sfd = new SaveFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Save Font Character",
@@ -570,22 +571,23 @@ namespace FontPackager
 			if (res != MessageBoxResult.OK)
 				return;
 
-			using (System.Windows.Forms.FolderBrowserDialog fbd = new System.Windows.Forms.FolderBrowserDialog())
+			OpenFolderDialog ofd = new OpenFolderDialog()
 			{
-				System.Windows.Forms.DialogResult result = fbd.ShowDialog();
-				if (!(result.ToString() == "OK"))
-					return;
+				Title = "Select Output Directory",
+			};
+			var result = ofd.ShowDialog();
+			if (!(bool)result)
+				return;
 
-				foreach (BlamCharacter bc in listchars.SelectedItems)
+			foreach (BlamCharacter bc in listchars.SelectedItems)
+			{
+				using (FileStream file = new FileStream(ofd.FolderName + "\\" + bc.UnicIndex.ToString("X4") + ".png", FileMode.Create, FileAccess.Write))
 				{
-					using (FileStream file = new FileStream(fbd.SelectedPath + "\\" + bc.UnicIndex.ToString("X4") + ".png", FileMode.Create, FileAccess.Write))
-					{
-						BitmapEncoder encoder = new PngBitmapEncoder();
-						encoder.Frames.Add(BitmapFrame.Create(bc.Image));
-						encoder.Save(file);
-					}
-
+					BitmapEncoder encoder = new PngBitmapEncoder();
+					encoder.Frames.Add(BitmapFrame.Create(bc.Image));
+					encoder.Save(file);
 				}
+
 			}
 		}
 
@@ -609,14 +611,15 @@ namespace FontPackager
 		{
 			string[] files;
 
-			using (System.Windows.Forms.FolderBrowserDialog fbd = new System.Windows.Forms.FolderBrowserDialog())
+			OpenFolderDialog ofd = new OpenFolderDialog()
 			{
-				System.Windows.Forms.DialogResult result = fbd.ShowDialog();
-				if (!(result.ToString() == "OK"))
-					return;
+				Title = "Select Icon Directory",
+			};
+			var result = ofd.ShowDialog();
+			if (!(bool)result)
+				return;
 
-				files = Directory.GetFiles(fbd.SelectedPath, "*.png");
-			}
+			files = Directory.GetFiles(ofd.FolderName, "*.png");
 
 			int successcount = 0;
 			int badnamecount = 0;
@@ -698,7 +701,6 @@ namespace FontPackager
 			ve.ShowDialog();
 		}
 
-
 		private void ExtractBat_CanExecute(object sender, CanExecuteRoutedEventArgs e)
 		{
 			if (listchars.SelectedItems.Count > 0)
@@ -711,7 +713,7 @@ namespace FontPackager
 		#region char manipulation
 		private static string OpenImage()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			OpenFileDialog ofd = new OpenFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Select Image",

@@ -10,8 +10,7 @@ using System.ComponentModel;
 using FontPackager.Dialogs;
 using FontPackager.Classes;
 using System;
-using System.Windows.Data;
-using System.Globalization;
+using Microsoft.Win32;
 
 namespace FontPackager
 {
@@ -186,7 +185,7 @@ namespace FontPackager
 
 		private static Tuple<string, FormatInformation, List<BlamFont>, List<int>> OpenAndLoadPackage()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			OpenFileDialog ofd = new OpenFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Open Font Package",
@@ -220,7 +219,7 @@ namespace FontPackager
 
 		private static Tuple<string, List<BlamFont>, List<int>> OpenAndLoadTable()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			OpenFileDialog ofd = new OpenFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Open Font Table",
@@ -251,7 +250,7 @@ namespace FontPackager
 
 		private static List<BlamFont> OpenAndImportLooseFonts()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			OpenFileDialog ofd = new OpenFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Open Font Files",
@@ -290,7 +289,7 @@ namespace FontPackager
 
 		private static Tuple<string, List<BlamFont>> OpenAndImportCacheFonts()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			OpenFileDialog ofd = new OpenFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Open Cache File",
@@ -321,7 +320,7 @@ namespace FontPackager
 
 		private static List<BlamFont> OpenAndImportFontTags()
 		{
-			Microsoft.Win32.OpenFileDialog ofd = new Microsoft.Win32.OpenFileDialog
+			OpenFileDialog ofd = new OpenFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Open Cache File",
@@ -360,30 +359,31 @@ namespace FontPackager
 
 		private static Tuple<string, List<BlamFont>> OpenAndImportDirectory()
 		{
-			using (System.Windows.Forms.FolderBrowserDialog fbd = new System.Windows.Forms.FolderBrowserDialog())
+			OpenFolderDialog ofd = new OpenFolderDialog()
 			{
-				System.Windows.Forms.DialogResult result = fbd.ShowDialog();
-				if (!(result.ToString() == "OK"))
+				Title = "Select Font Directory",
+			};
+			var result = ofd.ShowDialog();
+			if (!(bool)result)
+				return null;
+
+			string folder = Path.GetFileName(ofd.SafeFolderName);
+			var res = TableIO.ReadDirectory(ofd.FolderName);
+
+			switch (res.Item1)
+			{
+				case IOError.None:
+					return new Tuple<string, List<BlamFont>>
+						(folder, res.Item2);
+				case IOError.BadVersion:
+					MessageBox.Show("A font within folder \"\\" + folder + "\" had an invalid header version value and loading was cancelled.");
 					return null;
-
-				string folder = Path.GetFileName(fbd.SelectedPath);
-				var res = TableIO.ReadDirectory(fbd.SelectedPath);
-
-				switch (res.Item1)
-				{
-					case IOError.None:
-						return new Tuple<string, List<BlamFont>>
-							(folder, res.Item2);
-					case IOError.BadVersion:
-						MessageBox.Show("A font within folder \"\\" + folder + "\" had an invalid header version value and loading was cancelled.");
-						return null;
-					case IOError.Empty:
-						MessageBox.Show("Folder \"\\" + folder + "\" contained no valid fonts.");
-						return null;
-					default:
-						MessageBox.Show("An unknown error occurred loading folder \"\\" + folder + "\".");
-						return null;
-				}
+				case IOError.Empty:
+					MessageBox.Show("Folder \"\\" + folder + "\" contained no valid fonts.");
+					return null;
+				default:
+					MessageBox.Show("An unknown error occurred loading folder \"\\" + folder + "\".");
+					return null;
 			}
 		}
 		#endregion
@@ -395,7 +395,7 @@ namespace FontPackager
 			if (!string.IsNullOrEmpty(fname.Text) && Path.GetExtension(fname.Text) == ".bin")
 				defaultname = Path.GetFileNameWithoutExtension(fname.Text);
 
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			SaveFileDialog sfd = new SaveFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Save Font Package",
@@ -424,7 +424,7 @@ namespace FontPackager
 			if (!string.IsNullOrEmpty(fname.Text) && Path.GetExtension(fname.Text) == ".txt")
 				defaultname = Path.GetFileNameWithoutExtension(fname.Text);
 
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog
+			SaveFileDialog sfd = new SaveFileDialog
 			{
 				RestoreDirectory = true,
 				Title = "Save Font File",

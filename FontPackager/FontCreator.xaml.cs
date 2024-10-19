@@ -3,7 +3,6 @@ using System.Drawing;
 using System.Drawing.Text;
 using System.Linq;
 using System.Windows;
-using System.Windows.Controls;
 using FontPackager.Classes;
 using System;
 using System.Runtime.InteropServices;

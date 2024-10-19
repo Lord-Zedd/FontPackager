@@ -1,4 +1,5 @@
 ﻿using FontPackager.Classes;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -260,7 +261,7 @@ namespace FontPackager
 
 		private void ButtonSave_Click(object sender, RoutedEventArgs e)
 		{
-			Microsoft.Win32.SaveFileDialog sfd = new Microsoft.Win32.SaveFileDialog();
+			SaveFileDialog sfd = new SaveFileDialog();
 			sfd.RestoreDirectory = true;
 			sfd.Title = "Save Image";
 			sfd.Filter = "PNG Image (*.png)|*.png;";
