@@ -59,7 +59,6 @@ namespace FontPackager.Classes
 	{
 		None,
 		Limit256x64,
-		Limit256x67,
 		Limit256x56,
 		Limit784x512
 	}
@@ -273,7 +272,7 @@ namespace FontPackager.Classes
 		/// <summary>
 		/// Halo 4 (360), Halo 5 Forge (PC, is barely used by the game)
 		/// </summary>
-		public static FormatInformation H4 { get; } = new FormatInformation(FileFormat.Package, FormatFlags.Max64Fonts, ChunkSize.SizeC000, PixelLimit.None, ResolutionLimit.Limit256x67);
+		public static FormatInformation H4 { get; } = new FormatInformation(FileFormat.Package, FormatFlags.Max64Fonts, ChunkSize.SizeC000, PixelLimit.None, ResolutionLimit.Limit256x64);
 
 		/// <summary>
 		/// Halo 3, ODST, Reach. (MCC)
