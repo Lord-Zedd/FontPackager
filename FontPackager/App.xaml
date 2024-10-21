@@ -4,6 +4,22 @@
              xmlns:local="clr-namespace:FontPackager"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+		<ResourceDictionary>
+			<ResourceDictionary.MergedDictionaries>
+				<ResourceDictionary Source="Resources/Theme.xaml" />
+				<ResourceDictionary Source="Resources/Button.xaml" />
+				<ResourceDictionary Source="Resources/CheckBox.xaml" />
+				<ResourceDictionary Source="Resources/ComboBox.xaml" />
+				<ResourceDictionary Source="Resources/ContextMenu.xaml" />
+				<ResourceDictionary Source="Resources/Expander.xaml" />
+				<ResourceDictionary Source="Resources/GroupBox.xaml" />
+				<ResourceDictionary Source="Resources/Menu.xaml" />
+				<ResourceDictionary Source="Resources/MenuItem.xaml" />
+				<ResourceDictionary Source="Resources/RichTextBox.xaml" />
+				<ResourceDictionary Source="Resources/SelectionBox.xaml" />
+				<ResourceDictionary Source="Resources/TextBox.xaml" />
+				<ResourceDictionary Source="Resources/ToolTip.xaml" />
+			</ResourceDictionary.MergedDictionaries>
+		</ResourceDictionary>
     </Application.Resources>
 </Application>

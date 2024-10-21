@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:FontPackager"
 		xmlns:cl="clr-namespace:FontPackager.Classes"
         mc:Ignorable="d" x:Name="window" Icon=".\Resources\icon.ico" Closing="window_Closing"
-        Title="Font Packager" Background="LightGray" Height="400" Width="500" MinHeight="300" MinWidth="400" UseLayoutRounding="True">
+        Title="Font Packager" Background="{DynamicResource MainWindowBackgroundBrush}" Height="400" Width="500" MinHeight="300" MinWidth="400" UseLayoutRounding="True">
 	<Window.Resources>
 		<local:NullOrderFontConverter x:Key="nullfontconv" />
 	</Window.Resources>
@@ -19,7 +19,7 @@
 		</Grid.RowDefinitions>
 
 		<Grid>
-			<Menu Height="22">
+			<Menu>
 				<MenuItem Header="File" >
 					<MenuItem Header="New Collection" Click="btnNew_Click" ToolTip="Closes any open fonts and creates a new collection." />
 
@@ -53,10 +53,10 @@
 				<ColumnDefinition Width="Auto"/>
 			</Grid.ColumnDefinitions>
 
-			<TextBlock x:Name="fname" Grid.Column="0" Margin="4,0,4,0" VerticalAlignment="Center"/>
+			<TextBlock x:Name="fname"  Foreground="{DynamicResource PrimaryTextBrush}" Grid.Column="0" Margin="4,0,4,0" VerticalAlignment="Center"/>
 
 			<StackPanel Orientation="Horizontal" Grid.Column="1" Margin="4,2,4,0">
-				<TextBlock Text="Target Format:" VerticalAlignment="Center"/>
+				<TextBlock Text="Target Format:" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}" />
 				<ComboBox x:Name="cmbFmt" Width="140" Margin="4,0,0,0" SelectedIndex="4"
 						  ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=SelectedItem.ToolTip}">
 					<ComboBoxItem Content="Font Table (H2X)" Tag="{Binding Source={x:Static Member=cl:FormatInformation.H2X}}">
@@ -197,14 +197,15 @@
 				<RowDefinition Height="Auto"/>
 				<RowDefinition Height="*"/>
 			</Grid.RowDefinitions>
-			<TextBlock Text="Fonts:" Grid.Row="0" Grid.Column="0" Margin="4,0,0,0"/>
-			<TextBlock Text="{Binding ElementName=listfonts, Path=Items.Count, StringFormat={}{0:D}}" HorizontalAlignment="Right" Margin="0,0,4,0" />
+			<TextBlock Text="Fonts:" Grid.Row="0" Grid.Column="0" Margin="4,0,0,0" Foreground="{DynamicResource PrimaryTextBrush}" />
+			<TextBlock Text="{Binding ElementName=listfonts, Path=Items.Count, StringFormat={}{0:D}}" HorizontalAlignment="Right" Margin="0,0,4,0" Foreground="{DynamicResource PrimaryTextBrush}" />
 			<TextBlock Text="Engine Order:" Grid.Row="0" Grid.Column="1" Margin="4,0,0,0"
-					   ToolTip="Engine Order is how the games reference fonts internally. Fonts can be used in multiple indexes." />
+					   ToolTip="Engine Order is how the games reference fonts internally. Fonts can be used in multiple indexes." Foreground="{DynamicResource PrimaryTextBrush}" />
 
 			<ListBox x:Name="listfonts" Grid.Row="1" Grid.Column="0" Margin="0,0,2,0" HorizontalContentAlignment="Stretch" SelectionMode="Single" AllowDrop="True" Drop="listfonts_Drop"
 					  MouseDoubleClick="listfonts_MouseDoubleClick" PreviewDragOver="listfonts_PreviewDrag" PreviewKeyDown="listfonts_PreviewKeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-					 PreviewDragEnter="listfonts_PreviewDrag" PreviewDragLeave="listfonts_PreviewDrag">
+					 PreviewDragEnter="listfonts_PreviewDrag" PreviewDragLeave="listfonts_PreviewDrag"
+					 Background="{DynamicResource FontListBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
 				<ListBox.ItemContainerStyle>
 					<Style TargetType="ListBoxItem">
 						<EventSetter Event="PreviewMouseMove" Handler="listfonts_PreviewMouseMove" />
@@ -246,7 +247,8 @@
 			</ListBox>
 
 			<ListBox x:Name="listengineorders" Grid.Row="1" Grid.Column="1" Margin="2,0,0,0" PreviewDragOver="listfonts_PreviewDrag" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AlternationCount="64"
-					 PreviewDragEnter="listfonts_PreviewDrag" PreviewDragLeave="listfonts_PreviewDrag">
+					 PreviewDragEnter="listfonts_PreviewDrag" PreviewDragLeave="listfonts_PreviewDrag"
+					 Background="{DynamicResource FontListBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
 				<ListBox.ItemContainerStyle>
 					<Style TargetType="ListBoxItem">
 						<EventSetter Event="Drop" Handler="listengineorders_Drop" />
@@ -299,9 +301,9 @@
 			</ListBox>
 		</Grid>
 
-		<TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4" Grid.Row="4">
+		<TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4" Grid.Row="4" Foreground="{DynamicResource PrimaryTextBrush}">
 			Font Packager v2.41 by Zeddikins.
-			<Hyperlink NavigateUri="https://github.com/Lord-Zedd/FontPackager" RequestNavigate="Hyperlink_RequestNavigate">
+			<Hyperlink NavigateUri="https://github.com/Lord-Zedd/FontPackager" RequestNavigate="Hyperlink_RequestNavigate" Foreground="{DynamicResource URLTextBrush}">
 				GitHub
 			</Hyperlink>
 		</TextBlock>

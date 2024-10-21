@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:FontPackager"
 		xmlns:cl="clr-namespace:FontPackager.Classes"
         mc:Ignorable="d" WindowStyle="SingleBorderWindow"
-        Title="Font Packager - Import Fonts" Height="350" Width="300" Icon="/FontPackager;component/Resources/icon.ico">
+        Title="Font Packager - Import Fonts" Background="{DynamicResource MainWindowBackgroundBrush}" Height="350" Width="300" Icon="/FontPackager;component/Resources/icon.ico">
 	<Grid Margin="4">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
@@ -14,9 +14,10 @@
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
 
-		<TextBlock x:Name="importtext" Text="blah blah" TextWrapping="Wrap"/>
+		<TextBlock x:Name="importtext" Foreground="{DynamicResource PrimaryTextBrush}" Text="blah blah" TextWrapping="Wrap"/>
 
-		<ListBox x:Name="listfonts" Grid.Row="1" Margin="0,4" HorizontalContentAlignment="Stretch" SelectionMode="Extended" SelectionChanged="listfonts_SelectionChanged" MouseDown="listfonts_MouseDown">
+		<ListBox x:Name="listfonts" Grid.Row="1" Margin="0,4" HorizontalContentAlignment="Stretch" SelectionMode="Extended" SelectionChanged="listfonts_SelectionChanged" MouseDown="listfonts_MouseDown"
+				 Background="{DynamicResource FontListBackgroundBrush}" BorderBrush="{DynamicResource BorderBrush}" Foreground="{DynamicResource PrimaryTextBrush}">
 			<ListBox.Resources>
 				<DataTemplate DataType="{x:Type cl:BlamFont}">
 					<Grid Margin="4,0,4,0">
@@ -33,8 +34,8 @@
 		</ListBox>
 
 		<StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Right">
-			<Button x:Name="btnImport" Content="Import" Click="Import_Click"/>
-			<Button Content="Cancel" Margin="4,0,0,0" Click="Cancel_Click"/>
+			<Button x:Name="btnImport" Padding="8,0" Content="Import" Click="Import_Click"/>
+			<Button Content="Cancel" Padding="8,0" Margin="4,0,0,0" Click="Cancel_Click"/>
 		</StackPanel>
 	</Grid>
 </Window>

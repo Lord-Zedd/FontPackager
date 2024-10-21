@@ -1,0 +1,19 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+	xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2">
+
+	<SolidColorBrush x:Key="MainWindowBackgroundBrush" Color="#333333" />
+
+	<SolidColorBrush x:Key="ComboBoxBackgroundBrush" Color="#444444" />
+
+	<SolidColorBrush x:Key="FontListBackgroundBrush" Color="#222222" />
+
+	<SolidColorBrush x:Key="MenuBarBrush" Color="#FF282828" />
+
+	<SolidColorBrush x:Key="BorderBrush" Color="#FF444444" />
+
+	<SolidColorBrush x:Key="PrimaryTextBrush" Color="#CCCCCC" />
+	<SolidColorBrush x:Key="PrimaryDisabledTextBrush" Color="#999999" />
+
+	<SolidColorBrush x:Key="URLTextBrush" Color="#00AAFF" />
+</ResourceDictionary>

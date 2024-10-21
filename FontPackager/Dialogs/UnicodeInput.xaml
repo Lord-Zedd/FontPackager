@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager.Dialogs"
         mc:Ignorable="d" WindowStyle="ToolWindow"
-        Title="Enter Unicode" Height="150" Width="350" Icon="/FontPackager;component/Resources/icon.ico">
+        Title="Enter Unicode" Background="{DynamicResource MainWindowBackgroundBrush}" Height="150" Width="350" Icon="/FontPackager;component/Resources/icon.ico">
 	<Grid Margin="4">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
@@ -20,16 +20,16 @@
 			<ColumnDefinition Width="*"/>
 		</Grid.ColumnDefinitions>
 
-		<TextBlock x:Name="desc" Text="blah blah" TextWrapping="Wrap" VerticalAlignment="Top" Grid.ColumnSpan="2" />
+		<TextBlock x:Name="desc" Foreground="{DynamicResource PrimaryTextBrush}" Text="blah blah" TextWrapping="Wrap" VerticalAlignment="Top" Grid.ColumnSpan="2" />
 
-		<TextBlock Text="0x" VerticalAlignment="Center" Grid.Row="1" Margin="0,2,2,2"/>
+		<TextBlock Text="0x" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" Grid.Row="1" Margin="0,2,2,2"/>
 		<TextBox x:Name="unicbox" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1" Margin="2,2,0,2"/>
 
-		<TextBlock Text="MCC requires icons to be within the range of E000-E2FF." TextWrapping="Wrap" VerticalAlignment="Top" Grid.Row="2" Grid.ColumnSpan="2" />
+		<TextBlock Text="MCC requires icons to be within the range of E000-E2FF." Foreground="{DynamicResource PrimaryTextBrush}" TextWrapping="Wrap" VerticalAlignment="Top" Grid.Row="2" Grid.ColumnSpan="2" />
 
 		<StackPanel Orientation="Horizontal" Grid.Row="4" Grid.ColumnSpan="2" HorizontalAlignment="Right">
-			<Button x:Name="btnImport" Content="Import" Click="Import_Click"/>
-			<Button Content="Cancel" Margin="4,0,0,0" Click="Cancel_Click"/>
+			<Button x:Name="btnImport" Content="Import" Padding="8,0" Click="Import_Click"/>
+			<Button Content="Cancel" Margin="4,0,0,0" Padding="8,0" Click="Cancel_Click"/>
 		</StackPanel>
 	</Grid>
 </Window>

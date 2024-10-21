@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager.Dialogs"
         mc:Ignorable="d"
-        Title="Help" Height="500" Width="720">
+        Title="Help" Background="{DynamicResource MainWindowBackgroundBrush}" Height="500" Width="720">
 	<Grid Margin="4">
 		<RichTextBox ScrollViewer.VerticalScrollBarVisibility="Auto" IsReadOnly="True">
 			<RichTextBox.Document>

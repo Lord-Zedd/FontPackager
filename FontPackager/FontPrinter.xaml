@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager"
         mc:Ignorable="d" Icon=".\Resources\icon.ico"
-        Title="Font Packager Printer - Comic Sans" Height="400" Width="720" MinWidth="600" UseLayoutRounding="True">
+        Title="Font Packager Printer - Comic Sans" Background="{DynamicResource MainWindowBackgroundBrush}" Height="400" Width="720" MinWidth="600" UseLayoutRounding="True">
     <Grid>
 		<Grid.ColumnDefinitions>
 			<ColumnDefinition Width="*" />

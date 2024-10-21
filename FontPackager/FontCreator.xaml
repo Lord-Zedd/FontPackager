@@ -7,7 +7,7 @@
 		xmlns:cl="clr-namespace:FontPackager.Classes"
         mc:Ignorable="d"
 		x:Name="window" Closing="window_Closing"
-        Title="Font Packager - Create A Font" Height="380" Width="450" UseLayoutRounding="True" Icon="/FontPackager;component/Resources/icon.ico">
+        Title="Font Packager - Create A Font" Background="{DynamicResource MainWindowBackgroundBrush}" Height="380" Width="450" UseLayoutRounding="True" Icon="/FontPackager;component/Resources/icon.ico">
 	<Window.Resources>
 		<local:ScaleConverter x:Key="scaleconv" />
 	</Window.Resources>
@@ -20,7 +20,8 @@
 
 
 
-		<ListBox x:Name="prevchars" Grid.Row="0" Background="#111" Margin="4,4,4,2" AllowDrop="True" Drop="prevchars_Drop" PreviewDragOver="prevchars_PreviewDragOver">
+		<ListBox x:Name="prevchars" Grid.Row="0" Background="#111" Margin="4,4,4,2" AllowDrop="True" Drop="prevchars_Drop" PreviewDragOver="prevchars_PreviewDragOver"
+				 BorderBrush="{DynamicResource BorderBrush}">
 			<ListBox.ItemsPanel>
 				<ItemsPanelTemplate>
 					<WrapPanel IsItemsHost="True"/>
@@ -47,10 +48,10 @@
 		</ListBox>
 
 		<StackPanel Orientation="Horizontal" Grid.Row="1" Margin="4,2,4,2">
-			<TextBlock Text="Ascend Height:"/>
-			<TextBlock x:Name="ascprev" Text="null" Margin="4,0,0,0"/>
-			<TextBlock Text="Descend Height:" Margin="10,0,0,0"/>
-			<TextBlock x:Name="descprev" Text="null" Margin="4,0,0,0"/>
+			<TextBlock Text="Ascend Height:" Foreground="{DynamicResource PrimaryTextBrush}"/>
+			<TextBlock x:Name="ascprev" Text="null" Foreground="{DynamicResource PrimaryTextBrush}" Margin="4,0,0,0"/>
+			<TextBlock Text="Descend Height:" Foreground="{DynamicResource PrimaryTextBrush}" Margin="10,0,0,0"/>
+			<TextBlock x:Name="descprev" Text="null" Foreground="{DynamicResource PrimaryTextBrush}" Margin="4,0,0,0"/>
 		</StackPanel>
 		
 		
@@ -75,7 +76,7 @@
 					<TextBlock Text="Preview Text:" Grid.Column="0" VerticalAlignment="Center"/>
 					<TextBox x:Name="prevstring" Text="Font PackAger!" MaxLength="32" Grid.Column="1" Margin="4,0,0,0"/>
 
-					<Button Content="Update Preview" Grid.Column="2" Margin="4,0,0,0" Click="updatepreview_Click"/>
+					<Button Content="Update Preview" Grid.Column="2" Margin="4,0,0,0" Padding="4,0" Click="updatepreview_Click"/>
 				</Grid>
 
 				<Grid Grid.Row="1"  Margin="4,2,4,2">
@@ -85,7 +86,7 @@
 					</Grid.RowDefinitions>
 					<Grid.ColumnDefinitions>
 						<ColumnDefinition Width="Auto"/>
-						<ColumnDefinition Width="4*"/>
+						<ColumnDefinition Width="3*"/>
 						<ColumnDefinition Width="Auto"/>
 						<ColumnDefinition Width="*"/>
 						<ColumnDefinition Width="Auto"/>
@@ -96,7 +97,8 @@
 
 					<TextBlock Text="Size:" VerticalAlignment="Center" Margin="4,0,0,0" Grid.Column="2"/>
 					<TextBox x:Name="pcsize" MaxLength="5" Text="16" VerticalContentAlignment="Center" Margin="4,0,0,0" Grid.Column="3" />
-					<ToggleButton x:Name="pcbold" ToolTip="Bold" Content="B" Width="16" FontWeight="Bold" Margin="4,0,0,0" Grid.Column="4" />
+					<CheckBox x:Name="pcbold" Content="Bold" FontWeight="Bold" Margin="4,0,0,0" Grid.Column="4" VerticalAlignment="Center" />
+					<!--<ToggleButton x:Name="pcbold" ToolTip="Bold" Content="B" Width="16" FontWeight="Bold" Margin="4,0,0,0" Grid.Column="4" />-->
 
 					<Grid Grid.Column="1" Margin="4,4,0,0" Grid.Row="1" ToolTip="If blank, the name will be automatically generated.">
 						<Grid.ColumnDefinitions>
@@ -131,7 +133,7 @@
 					<TextBlock Text="0x" VerticalAlignment="Center" Margin="4,0,0,0" Grid.Column="4" Grid.Row="1"/>
 					<TextBox x:Name="rangeEnd" Text="3FF" MaxLength="4"  Margin="2,0,0,0" Grid.Column="5" Grid.Row="1" VerticalAlignment="Center"/>
 
-					<Button Content="Default Range" Grid.Column="6" Margin="4,0,0,0" Click="ResetRange_Click"/>
+					<Button Content="Default Range" Grid.Column="6" Margin="4,0,0,0" Padding="4,0" Click="ResetRange_Click"/>
 				</Grid>
 
 				<Grid Grid.Row="4" Margin="4,10,4,4">

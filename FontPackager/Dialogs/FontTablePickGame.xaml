@@ -5,14 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager.Dialogs"
         mc:Ignorable="d" ResizeMode="NoResize" WindowStyle="ToolWindow"
-        Title="Font Packager - Choose A Game" Height="250" Width="450" Icon="/FontPackager;component/Resources/icon.ico">
+        Title="Font Packager - Choose A Game" Background="{DynamicResource MainWindowBackgroundBrush}" Height="250" Width="450" Icon="/FontPackager;component/Resources/icon.ico">
 	<Grid Margin="4">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="2*"/>
 			<RowDefinition Height="*"/>
 		</Grid.RowDefinitions>
 
-		<TextBlock TextWrapping="Wrap" Grid.Row="0">
+		<TextBlock TextWrapping="Wrap" Grid.Row="0" Foreground="{DynamicResource PrimaryTextBrush}">
 				Because the Font Table format itself is unchanged between games, you will need to select the game this table belongs to.
 				<LineBreak/>
 				<LineBreak/>

@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager"
         mc:Ignorable="d" x:Name="window" Icon=".\Resources\icon.ico" Closing="window_Closing"
-        Title="Font Packager - Comic Sans" Height="600" Width="720" MinHeight="400" MinWidth="500" UseLayoutRounding="True">
+        Title="Font Packager - Comic Sans" Background="{DynamicResource MainWindowBackgroundBrush}" Height="600" Width="720" MinHeight="400" MinWidth="500" UseLayoutRounding="True">
 	<Window.Resources>
 		<ImageBrush x:Key="DarkCheck" ImageSource="Resources\dtile.png" Stretch="Uniform" TileMode="Tile" Viewport="0,0,12,12" ViewportUnits="Absolute" Opacity="0.5" />
 		<ImageBrush x:Key="LightCheck" ImageSource="Resources\ltile.png" Stretch="Uniform" TileMode="Tile" Viewport="0,0,12,12" ViewportUnits="Absolute" Opacity="0.5" />
@@ -21,7 +21,7 @@
 		</Grid.RowDefinitions>
 
 		<Grid Grid.Row="0">
-			<Menu Height="22">
+			<Menu>
 				<MenuItem Header="File">
 					<MenuItem Header="Save H2X Font" Tag="h2x" Click="Save_Click" ToolTip="Saves the open font as a singular font file, using Halo 2 Xbox's validation rules."/>
 					<MenuItem Header="Save H2V Font" Tag="h2v" Click="Save_Click" ToolTip="Saves the open font as a singular font file, using Halo 2 Vista's validation rules."/>
@@ -118,7 +118,7 @@
 						<ColumnDefinition Width="Auto"/>
 						<ColumnDefinition Width="*"/>
 					</Grid.ColumnDefinitions>
-					<TextBlock Text="Name" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,2,0" ToolTip="{Binding FontNameToolTip, ElementName=window}"/>
+					<TextBlock Text="Name" Foreground="{DynamicResource PrimaryTextBrush}" Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,2,0" ToolTip="{Binding FontNameToolTip, ElementName=window}"/>
 					<TextBox x:Name="fontName" Text="{Binding ElementName=window, Path=Font.Name, Mode=TwoWay, UpdateSourceTrigger=Explicit}"  ToolTip="{Binding FontNameToolTip, ElementName=window}"
 							 KeyDown="fontName_KeyDown" Grid.Row="0" Grid.Column="1" MaxLength="32" Margin="2,0"/>
 
@@ -128,25 +128,25 @@
 							<ColumnDefinition Width="*"/>
 						</Grid.ColumnDefinitions>
 
-						<TextBlock Text="MCC Scale:" VerticalAlignment="Center" HorizontalAlignment="Right" Grid.Column="0" Margin="0,0,2,0" ToolTip="{Binding MCCScaleToolTip, ElementName=window}"/>
+						<TextBlock Text="MCC Scale:" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" HorizontalAlignment="Right" Grid.Column="0" Margin="0,0,2,0" ToolTip="{Binding MCCScaleToolTip, ElementName=window}"/>
 						<TextBox x:Name="fontMCCScale" Text="{Binding ElementName=window, Path=Font.MCCScale, Mode=TwoWay, UpdateSourceTrigger=Explicit}" ToolTip="{Binding MCCScaleToolTip, ElementName=window}"
 							 Tag="mccscale" KeyDown="HeaderInt_KeyDown" MaxLength="8" VerticalContentAlignment="Center" Grid.Column="1" Margin="2,0"/>
 					</Grid>
 
 
-					<TextBlock Text="Ascend Height:" VerticalAlignment="Center" Grid.Row="0" Grid.Column="2" Margin="2,0" ToolTip="{Binding AscendHeightToolTip, ElementName=window}"/>
+					<TextBlock Text="Ascend Height:" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" Grid.Row="0" Grid.Column="2" Margin="2,0" ToolTip="{Binding AscendHeightToolTip, ElementName=window}"/>
 					<TextBox x:Name="fontAHeight" Text="{Binding ElementName=window, Path=Font.AscendHeight, Mode=TwoWay, UpdateSourceTrigger=Explicit}" ToolTip="{Binding AscendHeightToolTip, ElementName=window}"
 							 Tag="aheight" KeyDown="HeaderShort_KeyDown" MaxLength="8" VerticalContentAlignment="Center" Grid.Row="0" Grid.Column="3" Margin="2,0,2,2"/>
 
-					<TextBlock Text="Lead Height:" VerticalAlignment="Center" Grid.Row="0" Grid.Column="4" Margin="2,0" ToolTip="{Binding LeadHeightToolTip, ElementName=window}"/>
+					<TextBlock Text="Lead Height:" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" Grid.Row="0" Grid.Column="4" Margin="2,0" ToolTip="{Binding LeadHeightToolTip, ElementName=window}"/>
 					<TextBox x:Name="fontLHeight" Text="{Binding ElementName=window, Path=Font.LeadHeight, Mode=TwoWay, UpdateSourceTrigger=Explicit}" ToolTip="{Binding LeadHeightToolTip, ElementName=window}"
 							 Tag="lheight" KeyDown="HeaderShort_KeyDown" MaxLength="8" VerticalContentAlignment="Center" Grid.Row="0" Grid.Column="5" Margin="2,0,0,2"/>
 
-					<TextBlock Text="Descend Height:" VerticalAlignment="Center" Grid.Row="1" Grid.Column="2"  Margin="2,0" ToolTip="{Binding DescendHeightToolTip, ElementName=window}"/>
+					<TextBlock Text="Descend Height:" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" Grid.Row="1" Grid.Column="2"  Margin="2,0" ToolTip="{Binding DescendHeightToolTip, ElementName=window}"/>
 					<TextBox x:Name="fontDHeight" Text="{Binding ElementName=window, Path=Font.DescendHeight, Mode=TwoWay, UpdateSourceTrigger=Explicit}" ToolTip="{Binding DescendHeightToolTip, ElementName=window}"
 							 Tag="dheight" KeyDown="HeaderShort_KeyDown" MaxLength="8" VerticalContentAlignment="Center" Grid.Row="1" Grid.Column="3" Margin="2,2,2,0"/>
 
-					<TextBlock Text="Lead Width:" VerticalAlignment="Center" Grid.Row="1" Grid.Column="4" Margin="2,0,0,0" ToolTip="{Binding LeadWidthToolTip, ElementName=window}"/>
+					<TextBlock Text="Lead Width:" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" Grid.Row="1" Grid.Column="4" Margin="2,0,0,0" ToolTip="{Binding LeadWidthToolTip, ElementName=window}"/>
 					<TextBox x:Name="fontLWidth" Text="{Binding ElementName=window, Path=Font.LeadWidth, Mode=TwoWay, UpdateSourceTrigger=Explicit}" ToolTip="{Binding LeadWidthToolTip, ElementName=window}"
 							 Tag="lwidth" KeyDown="HeaderShort_KeyDown" MaxLength="8" VerticalContentAlignment="Center" Grid.Row="1" Grid.Column="5" Margin="2,2,0,0"/>
 
@@ -156,7 +156,7 @@
 			</Expander>
 
 			<StackPanel Orientation="Horizontal" VerticalAlignment="Top" Grid.Row="0" HorizontalAlignment="Right" Margin="0,4,4,0">
-				<TextBlock Text="Character Range" VerticalAlignment="Center"/>
+				<TextBlock Text="Character Range" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryTextBrush}"/>
 				<ComboBox x:Name="bigrange" Width="150" VerticalAlignment="Center" ItemsSource="{Binding Ranges, ElementName=window}" DisplayMemberPath="Name" Margin="4,0,0,0"
 						  SelectionChanged="bigrange_SelectionChanged">
 					<ComboBox.ItemContainerStyle>
@@ -175,7 +175,8 @@
 
 				<ListBox x:Name="listchars" Grid.Row="1" ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionMode="Extended" AllowDrop="True" Drop="listchars_Drop" PreviewDragOver="listchars_PreviewDrag"
 					 ScrollViewer.VerticalScrollBarVisibility="Auto" MouseLeftButtonDown="listchars_MouseLeftButtonDown" SelectionChanged="listchars_SelectionChanged"  Padding="1" Margin="4,2,4,2"
-					 PreviewKeyDown="listchars_PreviewKeyDown" MouseLeftButtonUp="listchars_MouseLeftButtonUp" PreviewDragEnter="listchars_PreviewDrag" PreviewDragLeave="listchars_PreviewDrag">
+					 PreviewKeyDown="listchars_PreviewKeyDown" MouseLeftButtonUp="listchars_MouseLeftButtonUp" PreviewDragEnter="listchars_PreviewDrag" PreviewDragLeave="listchars_PreviewDrag"
+						 BorderBrush="{DynamicResource BorderBrush}">
 					<ListBox.Background>
 						<ImageBrush ImageSource="Resources\dtile.png" Stretch="Uniform" TileMode="Tile" Viewport="0,0,12,12" ViewportUnits="Absolute" Opacity="0.5"/>
 					</ListBox.Background>
@@ -325,11 +326,11 @@
 						<ColumnDefinition Width="*"/>
 					</Grid.ColumnDefinitions>
 
-					<TextBlock Text="Display Width:" VerticalAlignment="Center" Grid.Column="0" Margin="0,0,2,0" ToolTip="{Binding DisplayWidthToolTip, ElementName=window}"/>
+					<TextBlock Text="Display Width:" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" Grid.Column="0" Margin="0,0,2,0" ToolTip="{Binding DisplayWidthToolTip, ElementName=window}"/>
 					<TextBox x:Name="charWidth" Tag="cwidth" KeyDown="CharacterWidth_KeyDown" Grid.Column="1" Margin="2,0,2,0" VerticalContentAlignment="Center" ToolTip="{Binding DisplayWidthToolTip, ElementName=window}"/>
-					<TextBlock Text="Origin x:" VerticalAlignment="Center" Grid.Column="2" Margin="2,0,2,0" ToolTip="{Binding XOriginToolTip, ElementName=window}"/>
+					<TextBlock Text="Origin x:" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" Grid.Column="2" Margin="2,0,2,0" ToolTip="{Binding XOriginToolTip, ElementName=window}"/>
 					<TextBox x:Name="charOriginX" Tag="corx" KeyDown="CharacterShort_KeyDown" MaxLength="7" Grid.Column="3" Margin="2,0,2,0" VerticalContentAlignment="Center" ToolTip="{Binding XOriginToolTip, ElementName=window}"/>
-					<TextBlock Text="Origin y:" VerticalAlignment="Center" Grid.Column="4" Margin="2,0,2,0" ToolTip="{Binding YOriginToolTip, ElementName=window}"/>
+					<TextBlock Text="Origin y:" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" Grid.Column="4" Margin="2,0,2,0" ToolTip="{Binding YOriginToolTip, ElementName=window}"/>
 					<TextBox x:Name="charOriginY" Tag="cory" KeyDown="CharacterShort_KeyDown" MaxLength="7" VerticalContentAlignment="Center" Grid.Column="5" Margin="2,0,0,0" ToolTip="{Binding YOriginToolTip, ElementName=window}"/>
 
 				</Grid>

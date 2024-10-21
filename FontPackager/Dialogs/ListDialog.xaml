@@ -5,14 +5,14 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager.Dialogs"
         mc:Ignorable="d"
-        Title="blah" Height="300" Width="500" Icon="/FontPackager;component/Resources/icon.ico">
+        Title="blah" Background="{DynamicResource MainWindowBackgroundBrush}" Height="300" Width="500" Icon="/FontPackager;component/Resources/icon.ico">
     <Grid Margin="4">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="*"/>
 			<RowDefinition Height="Auto"/>
 		</Grid.RowDefinitions>
-		<TextBlock x:Name="msgtxt" Text="blah" TextWrapping="Wrap"/>
+		<TextBlock x:Name="msgtxt" Foreground="{DynamicResource PrimaryTextBrush}" Text="blah" TextWrapping="Wrap"/>
 		<TextBox x:Name="resulttxt" IsReadOnly="True" Grid.Row="1" VerticalScrollBarVisibility="Visible" TextWrapping="Wrap" Margin="0,4,0,4"/>
 		<StackPanel Orientation="Horizontal" Grid.Row="2" HorizontalAlignment="Right">
 			<Button x:Name="ignorebtn" Content="Ignore and Continue" Width="128" Click="Button_Click_1" Visibility="Hidden"/>
