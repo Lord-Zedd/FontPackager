@@ -179,6 +179,7 @@ namespace FontPackager
 			
 			MessageBox.Show("\"" + Path.GetFileName(LastFilePath) + "\" has been loaded successfully with " + Fonts.Count + " fonts.");
 			
+			menuSave.IsEnabled = true;
 			menuSaveAs.IsEnabled = true;
 			menuTools.IsEnabled = true;
 		}
@@ -296,7 +297,7 @@ namespace FontPackager
 			else if (ext.ToLowerInvariant() == ".txt")
 				HandleTableLoad(path);
 			else
-				throw new NotImplementedException();
+				MessageBox.Show("Tried to open an unknown file type.");
 		}
 
 		private static List<BlamFont> OpenAndImportLooseFonts()
@@ -440,7 +441,7 @@ namespace FontPackager
 		#endregion
 
 		#region saving
-		private bool SavePackage(FormatInformation info)
+		private bool SavePackageAs(FormatInformation info)
 		{
 			string defaultname = "font_package";
 			if (!string.IsNullOrEmpty(fname.Text) && Path.GetExtension(fname.Text) == ".bin")
@@ -456,12 +457,17 @@ namespace FontPackager
 			if (!(bool)sfd.ShowDialog())
 				return false;
 
+			return SavePackage(info, sfd.FileName);
+		}
+
+		private bool SavePackage(FormatInformation info, string path)
+		{
 			if (!VerifyFonts(info))
 				return false;
 
-			PackageIO.Write(Fonts.ToList(), CreateOrderList(), sfd.FileName, info);
+			PackageIO.Write(Fonts.ToList(), CreateOrderList(), path, info);
 
-			LastFilePath = sfd.FileName;
+			LastFilePath = path;
 
 			fname.Text = Path.GetFileName(LastFilePath);
 			fname.ToolTip = LastFilePath;
@@ -469,7 +475,7 @@ namespace FontPackager
 			return true;
 		}
 
-		private bool SaveTable(FormatInformation info)
+		private bool SaveTableAs(FormatInformation info)
 		{
 			string defaultname = "font_table";
 			if (!string.IsNullOrEmpty(fname.Text) && Path.GetExtension(fname.Text) == ".txt")
@@ -485,24 +491,61 @@ namespace FontPackager
 			if (!(bool)sfd.ShowDialog())
 				return false;
 
+			return SaveTable(info, sfd.FileName);
+		}
+
+		private bool SaveTable(FormatInformation info, string path)
+		{
 			if (!VerifyFonts(info))
 				return false;
 
-			TableIO.WriteTable(Fonts.ToList(), CreateOrderList(), sfd.FileName, info);
+			TableIO.WriteTable(Fonts.ToList(), CreateOrderList(), path, info);
 
-			LastFilePath = sfd.FileName;
+			LastFilePath = path;
 
 			fname.Text = Path.GetFileName(LastFilePath);
 			fname.ToolTip = LastFilePath;
 
 			return true;
 		}
+
+		private void SaveCollection(bool saveAs)
+		{
+			if (Fonts == null || Fonts.Count == 0)
+			{
+				MessageBox.Show("Add at least 1 font to save a collection.");
+				return;
+			}
+			bool success = false;
+
+			if (TargetFormat.Format == FileFormat.Table)
+			{
+				if (Fonts.Count > TargetFormat.MaximumFontCount)
+				{
+					MessageBox.Show("The table format only supports up to 12 fonts. Remove some to save as this format.");
+					return;
+				}
+				success = saveAs ? SaveTableAs(TargetFormat) : SaveTable(TargetFormat, LastFilePath);
+			}
+
+			else if (TargetFormat.Format == FileFormat.Package)
+			{
+				if (Fonts.Count > TargetFormat.MaximumFontCount)
+				{
+					MessageBox.Show("The chosen package format only supports up to " + TargetFormat.MaximumFontCount + " fonts. Remove some to save as this format.");
+					return;
+				}
+				success = saveAs ? SavePackageAs(TargetFormat) : SavePackage(TargetFormat, LastFilePath);
+			}
+
+			if (success)
+				MessageBox.Show("\"" + Path.GetFileName(LastFilePath) + "\" has been saved successfully.");
+		}
 		#endregion
 
-		#region menus
-		private void btnNew_Click(object sender, RoutedEventArgs e)
+		#region commands
+		private void New_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-
 			if (Fonts != null && Fonts.Count > 0)
 			{
 				var res = MessageBox.Show("Are you sure you want to create a new collection? All fonts will be removed including any unsaved changes!", "Confirm New Collection", MessageBoxButton.OKCancel);
@@ -519,11 +562,12 @@ namespace FontPackager
 			listfonts.ItemsSource = Fonts;
 			CopyOrders(null);
 			
+			menuSave.IsEnabled = true;
 			menuSaveAs.IsEnabled = true;
 			menuTools.IsEnabled = true;
 		}
 
-		private void btnOpen_Click(object sender, RoutedEventArgs e)
+		private void Open_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
 			OpenFileDialog ofd = new OpenFileDialog
 			{
@@ -554,44 +598,32 @@ namespace FontPackager
 
 					}
 				default:
-					throw new NotImplementedException();
+					MessageBox.Show("Tried to open an unknown file type.");
+					break;
 			}
 		}
 		
-		private void btnSave_Click(object sender, RoutedEventArgs e)
+		private void Save_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			if (Fonts.Count == 0)
-			{
-				MessageBox.Show("Add at least 1 font to save a collection.");
-				return;
-			}
+			bool saveAs = false;
+			if (string.IsNullOrEmpty(LastFilePath))
+				saveAs = true;
 
-			bool success = false;
+			string ext = Path.GetExtension(LastFilePath).ToLowerInvariant();
+			if ((TargetFormat.Format == FileFormat.Table && ext != ".txt") ||
+				(TargetFormat.Format == FileFormat.Package && ext != ".bin"))
+				saveAs = true;
 
-			if (TargetFormat.Format == FileFormat.Table)
-			{
-				if (Fonts.Count > TargetFormat.MaximumFontCount)
-				{
-					MessageBox.Show("The table format only supports up to 12 fonts. Remove some to save as this format.");
-					return;
-				}
-				success = SaveTable(TargetFormat);
-			}
-				
-			else if (TargetFormat.Format == FileFormat.Package)
-			{
-				if (Fonts.Count > TargetFormat.MaximumFontCount)
-				{
-					MessageBox.Show("The chosen package format only supports up to " + TargetFormat.MaximumFontCount + " fonts. Remove some to save as this format.");
-					return;
-				}
-				success = SavePackage(TargetFormat);
-			}
-
-			if (success)
-				MessageBox.Show("\"" + Path.GetFileName(LastFilePath) + "\" has been saved successfully.");
+			SaveCollection(saveAs);
 		}
 
+		private void SaveAs_Executed(object sender, ExecutedRoutedEventArgs e)
+		{
+			SaveCollection(true);
+		}
+		#endregion
+
+		#region menus
 		private void btnImport_Click(object sender, RoutedEventArgs e)
 		{
 			List<BlamFont> fonts;
@@ -650,7 +682,8 @@ namespace FontPackager
 					}
 					break;
 				default:
-					throw new NotImplementedException();
+					MessageBox.Show("Invalid import type selected.");
+					return;
 			}
 
 			if (skipdialog)
@@ -938,7 +971,6 @@ namespace FontPackager
 
 			}
 		}
-
 		#endregion
 
 		#region order list drag n drop

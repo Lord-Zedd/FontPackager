@@ -11,6 +11,18 @@
 	<Window.Resources>
 		<local:NullOrderFontConverter x:Key="nullfontconv" />
 	</Window.Resources>
+	<Window.CommandBindings>
+		<CommandBinding Command="New" Executed="New_Executed" />
+		<CommandBinding Command="Open" Executed="Open_Executed" />
+		<CommandBinding Command="Save" Executed="Save_Executed" />
+		<CommandBinding Command="SaveAs" Executed="SaveAs_Executed" />
+	</Window.CommandBindings>
+	<Window.InputBindings>
+		<KeyBinding Key="N" Modifiers="Ctrl" Command="New" />
+		<KeyBinding Key="O" Modifiers="Ctrl" Command="Open" />
+		<KeyBinding Key="S" Modifiers="Ctrl" Command="Save" />
+		<KeyBinding Key="S" Modifiers="Ctrl+Shift" Command="SaveAs" />
+	</Window.InputBindings>
 	<Grid>
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
@@ -22,10 +34,11 @@
 		<Grid>
 			<Menu>
 				<MenuItem Header="File" >
-					<MenuItem Header="New Collection" Click="btnNew_Click" ToolTip="Closes any open fonts and creates a new collection." />
-					<MenuItem Header="Open Collection" Click="btnOpen_Click" ToolTip="Open a file." />
+					<MenuItem Header="New Collection" Command="New" ToolTip="Closes any open fonts and creates a new collection." InputGestureText="Ctrl+N" />
+					<MenuItem Header="Open Collection..." Command="Open" ToolTip="Open a file." InputGestureText="Ctrl+O" />
 					<Separator />
-					<MenuItem x:Name="menuSaveAs" Header="Save As Target Format..." IsEnabled="False" Click="btnSave_Click" />
+					<MenuItem x:Name="menuSave" Header="Save In Target Format..." Command="Save" IsEnabled="False" InputGestureText="Ctrl+S" />
+					<MenuItem x:Name="menuSaveAs" Header="Save As Target Format..." Command="SaveAs" IsEnabled="False" InputGestureText="Ctrl+Shift+S" />
 				</MenuItem>
 				<MenuItem x:Name="menuTools" Header="Tools" IsEnabled="False">
 					<MenuItem Header="Convert System Font..." Click="PCImport_Click" ToolTip="Create a new font using a font installed on your PC."/>
