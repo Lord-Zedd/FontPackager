@@ -194,27 +194,43 @@ namespace FontPackager
 			if (!(bool)ofd.ShowDialog())
 				return null;
 
-			string filename = ofd.FileName;
-			var res = PackageIO.Read(ofd.FileName);
+			return LoadPackageFromPath(ofd.FileName);
+		}
+
+		private static Tuple<string, FormatInformation, List<BlamFont>, List<int>> LoadPackageFromPath(string path)
+		{
+			string fullPath = path;
+			string filename = Path.GetFileName(fullPath);
+			var res = PackageIO.Read(fullPath);
 
 			switch (res.Item1)
 			{
 				case IOError.None:
 					return new Tuple<string, FormatInformation, List<BlamFont>, List<int>>
-						(filename, res.Item2, res.Item3, res.Item4);
+						(fullPath, res.Item2, res.Item3, res.Item4);
 				case IOError.BadVersion:
-					MessageBox.Show("Package \"" + ofd.SafeFileName + "\" has an invalid header version value and was not loaded.");
+					MessageBox.Show("Package \"" + filename + "\" has an invalid header version value and was not loaded.");
 					return null;
 				case IOError.UnknownBlock:
-					MessageBox.Show("Cannot determine Block Size for Package \"" + ofd.SafeFileName + "\" and was not loaded.");
+					MessageBox.Show("Cannot determine Block Size for Package \"" + filename + "\" and was not loaded.");
 					return null;
 				case IOError.Empty:
-					MessageBox.Show("Package \"" + ofd.SafeFileName + "\" has a font count of 0 and was not loaded.");
+					MessageBox.Show("Package \"" + filename + "\" has a font count of 0 and was not loaded.");
 					return null;
 				default:
-					MessageBox.Show("An unknown error occurred loading package \"" + ofd.SafeFileName + "\".");
+					MessageBox.Show("An unknown error occurred loading package \"" + filename + "\".");
 					return null;
 			}
+		}
+
+		private void HandlePackageLoad(string path)
+		{
+			var res = LoadPackageFromPath(path);
+			if (res == null)
+				return;
+
+			LastFilePath = res.Item1;
+			FinishLoading(res.Item2, res.Item3, res.Item4);
 		}
 
 		private static Tuple<string, List<BlamFont>, List<int>> OpenAndLoadTable()
@@ -228,24 +244,59 @@ namespace FontPackager
 			if (!(bool)ofd.ShowDialog())
 				return null;
 
-			string filename = ofd.FileName;
-			var res = TableIO.ReadTable(ofd.FileName);
+			return LoadTableFromPath(ofd.FileName);
+		}
+
+		private static Tuple<string, List<BlamFont>, List<int>> LoadTableFromPath(string path)
+		{
+			string fullPath = path;
+			string filename = Path.GetFileName(fullPath);
+			var res = TableIO.ReadTable(fullPath);
 
 			switch (res.Item1)
 			{
 				case IOError.None:
 					return new Tuple<string, List<BlamFont>, List<int>>
-						(filename, res.Item2, res.Item3);
+						(fullPath, res.Item2, res.Item3);
 				case IOError.BadVersion:
-					MessageBox.Show("A font within list \"" + ofd.SafeFileName + "\" had an invalid header version value and loading was cancelled.");
+					MessageBox.Show("A font within list \"" + filename + "\" had an invalid header version value and loading was cancelled.");
 					return null;
 				case IOError.Empty:
-					MessageBox.Show("List \"" + ofd.SafeFileName + "\" has no valid fonts.");
+					MessageBox.Show("List \"" + filename + "\" has no valid fonts.");
 					return null;
 				default:
-					MessageBox.Show("An unknown error occurred loading list \"" + ofd.SafeFileName + "\".");
+					MessageBox.Show("An unknown error occurred loading list \"" + filename + "\".");
 					return null;
 			}
+		}
+
+		private void HandleTableLoad(string path)
+		{
+			var res = LoadTableFromPath(path);
+			if (res == null)
+				return;
+
+			FontTablePickGame picker = new FontTablePickGame();
+			picker.ShowDialog();
+
+			if (picker.DialogResult == false)
+				return;
+
+			FormatInformation info = picker.Game;
+
+			LastFilePath = res.Item1;
+			FinishLoading(info, res.Item2, res.Item3);
+		}
+
+		private void HandleCollectionFromPath(string path)
+		{
+			string ext = Path.GetExtension(path);
+			if (ext.ToLowerInvariant() == ".bin")
+				HandlePackageLoad(path);
+			else if (ext.ToLowerInvariant() == ".txt")
+				HandleTableLoad(path);
+			else
+				throw new NotImplementedException();
 		}
 
 		private static List<BlamFont> OpenAndImportLooseFonts()
@@ -474,41 +525,37 @@ namespace FontPackager
 
 		private void btnOpen_Click(object sender, RoutedEventArgs e)
 		{
-			switch ((string)((MenuItem)sender).Tag)
+			OpenFileDialog ofd = new OpenFileDialog
 			{
-				case "package":
+				RestoreDirectory = true,
+				Title = "Open Font Collection",
+				Filter = "All Supported Collections (*.bin,*.txt)|*.bin;*.txt;|Font Packages (*.bin)|*.bin;|Font Tables (*.txt)|*.txt;"
+				//Filter = "Font Packages (*.bin)|*.bin;|Font Tables (*.txt)|*.txt;"
+			};
+			if (!(bool)ofd.ShowDialog())
+				return;
+
+			switch (ofd.FilterIndex)
+			{
+				case 1:
 					{
-						var res = OpenAndLoadPackage();
-						if (res == null)
-							return;
-
-						LastFilePath = res.Item1;
-						FinishLoading(res.Item2, res.Item3, res.Item4);
+						HandleCollectionFromPath(ofd.FileName);
+						break;
 					}
-					break;
-				case "table":
+				case 2:
 					{
-						var res = OpenAndLoadTable();
-						if (res == null)
-							return;
-
-						FontTablePickGame picker = new FontTablePickGame();
-						picker.ShowDialog();
-
-						if (picker.DialogResult == false)
-							return;
-
-						FormatInformation info = picker.Game;
-
-						LastFilePath = res.Item1;
-						FinishLoading(info, res.Item2, res.Item3);
+						HandlePackageLoad(ofd.FileName);
+						break;
 					}
-					break;
+				case 3:
+					{
+						HandleTableLoad(ofd.FileName);
+						break;
+
+					}
 				default:
 					throw new NotImplementedException();
 			}
-
-			
 		}
 		
 		private void btnSave_Click(object sender, RoutedEventArgs e)
@@ -795,6 +842,12 @@ namespace FontPackager
 
 		private void listfonts_Drop(object sender, DragEventArgs e)
 		{
+			if (e.Data.GetDataPresent(DataFormats.FileDrop))
+			{
+				HandleFileDrop(sender, e);
+				return;
+			}
+
 			BlamFont dropped;
 			try
 			{
@@ -826,6 +879,12 @@ namespace FontPackager
 
 		private void listfont_Drop(object sender, DragEventArgs e)
 		{
+			if (e.Data.GetDataPresent(DataFormats.FileDrop))
+			{
+				HandleFileDrop(sender, e);
+				return;
+			}
+
 			BlamFont dropped = (BlamFont)e.Data.GetData(typeof(BlamFont));
 			if (e.Data.GetDataPresent(typeof(List<BlamCharacter>)) || dropped == null)
 				return;
@@ -843,7 +902,9 @@ namespace FontPackager
 
 		private void listfonts_PreviewDrag(object sender, DragEventArgs e)
 		{
-			if (e.Data.GetDataPresent(typeof(BlamFont)) && !e.Data.GetDataPresent(typeof(List<BlamCharacter>)))
+			if (e.Data.GetDataPresent(DataFormats.FileDrop))
+				return;
+			else if (e.Data.GetDataPresent(typeof(BlamFont)) && !e.Data.GetDataPresent(typeof(List<BlamCharacter>)))
 				return;
 
 			e.Effects = DragDropEffects.None;
@@ -883,6 +944,12 @@ namespace FontPackager
 		#region order list drag n drop
 		private void listengineorders_Drop(object sender, DragEventArgs e)
 		{
+			if (e.Data.GetDataPresent(DataFormats.FileDrop))
+			{
+				HandleFileDrop(sender, e);
+				return;
+			}
+			
 			BlamFont dropped = ((BlamFont)e.Data.GetData(typeof(BlamFont)));
 			if (e.Data.GetDataPresent(typeof(List<BlamCharacter>)) || dropped == null)
 				return;
@@ -895,6 +962,40 @@ namespace FontPackager
 		}
 		#endregion
 
+		#region general drag and drop
+		private void window_PreviewDrag(object sender, DragEventArgs e)
+		{
+			if (e.Data.GetDataPresent(DataFormats.FileDrop))
+				return;
+
+			e.Effects = DragDropEffects.None;
+			e.Handled = true;
+		}
+
+		private void window_Drop(object sender, DragEventArgs e)
+		{
+			if (e.Data.GetDataPresent(DataFormats.FileDrop))
+			{
+				HandleFileDrop(sender, e);
+			}
+		}
+
+		private void HandleFileDrop(object sender, DragEventArgs e)
+		{
+			string[] draggedFiles = (string[])e.Data.GetData(DataFormats.FileDrop, true);
+			if (draggedFiles.Length > 0)
+			{
+				if (draggedFiles.Length > 1)
+				{
+					MessageBox.Show("Please only drag one file.");
+					return;
+				}
+
+				HandleCollectionFromPath(draggedFiles[0]);
+				e.Handled |= true;
+			}
+		}
+		#endregion
 	}
 }
 
