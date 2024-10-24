@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:FontPackager"
 		xmlns:cl="clr-namespace:FontPackager.Classes"
         mc:Ignorable="d" x:Name="window" Icon=".\Resources\icon.ico" Closing="window_Closing"
-        Title="Font Packager" Background="{DynamicResource MainWindowBackgroundBrush}" Height="400" Width="500" MinHeight="300" MinWidth="400"
+        Title="Font Packager v2.42" Background="{DynamicResource MainWindowBackgroundBrush}" Height="400" Width="500" MinHeight="300" MinWidth="400"
 		UseLayoutRounding="True" PreviewDragEnter="window_PreviewDrag" PreviewDragLeave="window_PreviewDrag" Drop="window_Drop" AllowDrop="True">
 	<Window.Resources>
 		<local:NullOrderFontConverter x:Key="nullfontconv" />
@@ -52,7 +52,15 @@
 					</MenuItem>
 				</MenuItem>
 
-				<MenuItem Header="Help..." Click="Help_Click" />
+				<MenuItem Header="Help">
+					<MenuItem Header="Font Packager Tips..." Click="Help_Click" ToolTip="Opens a window that contains details on modding with Font Packager." />
+					<Separator/>
+					<MenuItem Header="By Zeddikins..." Foreground="{StaticResource URLTextBrush}" Click="TaggedLink_Click"
+							  Tag="https://www.youtube.com/watch?v=dQw4w9WgXcQ" ToolTip="Opens a browser window to something cool!" />
+					<MenuItem Header="Font Packager on Github..." Foreground="{StaticResource URLTextBrush}" Click="TaggedLink_Click"
+							  Tag="https://github.com/Lord-Zedd/FontPackager" ToolTip="Opens a browser window to Font Packager's repositor on Github." />
+				</MenuItem>
+				
 
 			</Menu>
 		</Grid>
@@ -311,12 +319,8 @@
 			</ListBox>
 		</Grid>
 
-		<TextBlock HorizontalAlignment="Right" VerticalAlignment="Center" Margin="4" Grid.Row="4" Foreground="{DynamicResource PrimaryTextBrush}">
-			Font Packager v2.41 by Zeddikins.
-			<Hyperlink NavigateUri="https://github.com/Lord-Zedd/FontPackager" RequestNavigate="Hyperlink_RequestNavigate" Foreground="{DynamicResource URLTextBrush}">
-				GitHub
-			</Hyperlink>
-		</TextBlock>
+		<TextBlock Text="{Binding Status.StatusText, ElementName=window, FallbackValue=Initializing...}" FontSize="11"
+				   HorizontalAlignment="Left" VerticalAlignment="Center" Margin="4,0,0,4" Grid.Row="4" Foreground="{DynamicResource PrimaryDisabledTextBrush}" />
 	</Grid>
 </Window>
 

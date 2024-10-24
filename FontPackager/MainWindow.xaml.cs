@@ -11,6 +11,7 @@ using FontPackager.Dialogs;
 using FontPackager.Classes;
 using System;
 using Microsoft.Win32;
+using System.Diagnostics;
 
 namespace FontPackager
 {
@@ -30,9 +31,12 @@ namespace FontPackager
 
 		bool isdropping_reorder = false;
 		FontCreator fc = null;
+
+		public StatusBar Status { get; }
 		
 		public MainWindow()
 		{
+			Status = new StatusBar();
 			InitializeComponent();
 			ChildWindows = new List<Window>();
 		}
@@ -176,8 +180,9 @@ namespace FontPackager
 			
 			fname.Text = Path.GetFileName(LastFilePath);
 			fname.ToolTip = LastFilePath;
-			
-			MessageBox.Show("\"" + Path.GetFileName(LastFilePath) + "\" has been loaded successfully with " + Fonts.Count + " fonts.");
+
+			var now = DateTime.Now;
+			Status.StatusText = $"[{now.ToShortTimeString()}] \"{Path.GetFileName(LastFilePath)}\" has been loaded successfully.";
 			
 			menuSave.IsEnabled = true;
 			menuSaveAs.IsEnabled = true;
@@ -539,7 +544,10 @@ namespace FontPackager
 			}
 
 			if (success)
-				MessageBox.Show("\"" + Path.GetFileName(LastFilePath) + "\" has been saved successfully.");
+			{
+				var now = DateTime.Now;
+				Status.StatusText = $"[{now.ToShortTimeString()}] \"{Path.GetFileName(LastFilePath)}\" saved successfully.";
+			}
 		}
 		#endregion
 
@@ -748,9 +756,17 @@ namespace FontPackager
 			fc = null;
 		}
 
-		private void Hyperlink_RequestNavigate(object sender, RequestNavigateEventArgs e)
+		private void TaggedLink_Click(object sender, RoutedEventArgs e)
 		{
-			System.Diagnostics.Process.Start(e.Uri.AbsoluteUri);
+			if (!(sender is MenuItem))
+				return;
+
+			string url = (string)((MenuItem)sender).Tag;
+
+			Process proc = new Process();
+			proc.StartInfo.UseShellExecute = true;
+			proc.StartInfo.FileName = url;
+			proc.Start();
 		}
 
 		#region font list
