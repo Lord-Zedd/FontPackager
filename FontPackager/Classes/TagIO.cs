@@ -175,6 +175,9 @@ namespace FontPackager.Classes
 					font.LeadWidth = br.ReadInt16();
 
 					//character table appears to be dynamically created and not stored in the tag? lets skip
+					//jk it is stored sometimes
+					br.BaseStream.Position = 0x70;
+					int tableCount = br.ReadInt32();
 
 					br.BaseStream.Position = 0xBC;
 
@@ -183,6 +186,19 @@ namespace FontPackager.Classes
 
 					int CompressedSize = br.ReadInt32();
 					br.BaseStream.Position += 0x10;
+
+					if (tableCount > 0)
+					{
+						int tableCharCount = 0;
+
+						for (int i = 0; i < tableCount; i++)
+						{
+							tableCharCount += br.ReadInt32();
+							br.BaseStream.Position += 8;
+						}
+
+						br.BaseStream.Position += tableCharCount * 2;
+					}
 
 					int charblockstart = (int)br.BaseStream.Position;
 					int charblocklength = CharacterCount * 0x14;
