@@ -1,4 +1,4 @@
-# Font Packager v2.3
+# Font Packager
 Blam Engine Font File Editor
 
 Font Packager is a tool to open and manipulate the font-related files of blam engine games starting with Halo 2.
