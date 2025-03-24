@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:FontPackager"
 		xmlns:cl="clr-namespace:FontPackager.Classes"
         mc:Ignorable="d" x:Name="window" Icon=".\Resources\icon.ico" Closing="window_Closing"
-        Title="Font Packager v2.42" Background="{DynamicResource MainWindowBackgroundBrush}" Height="400" Width="500" MinHeight="300" MinWidth="400"
+        Title="Font Packager v2.45" Background="{DynamicResource MainWindowBackgroundBrush}" Height="400" Width="500" MinHeight="300" MinWidth="400"
 		UseLayoutRounding="True" PreviewDragEnter="window_PreviewDrag" PreviewDragLeave="window_PreviewDrag" Drop="window_Drop" AllowDrop="True">
 	<Window.Resources>
 		<local:NullOrderFontConverter x:Key="nullfontconv" />
