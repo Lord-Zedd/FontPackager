@@ -5,8 +5,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager.Dialogs"
         mc:Ignorable="d" WindowStyle="ToolWindow"
-        Title="Enter Unicode" Background="{DynamicResource MainWindowBackgroundBrush}" Height="150" Width="350" Icon="/FontPackager;component/Resources/icon.ico">
-	<Grid Margin="4">
+        Title="Enter Unicode" Background="{DynamicResource MainWindowBackgroundBrush}" Height="200" Width="380" Icon="/FontPackager;component/Resources/icon.ico">
+	<Grid Margin="8">
 		<Grid.RowDefinitions>
 			<RowDefinition Height="Auto"/>
 			<RowDefinition Height="Auto"/>
@@ -25,10 +25,11 @@
 		<TextBlock Text="0x" Foreground="{DynamicResource PrimaryTextBrush}" VerticalAlignment="Center" Grid.Row="1" Margin="0,2,2,2"/>
 		<TextBox x:Name="unicbox" VerticalAlignment="Center" Grid.Row="1" Grid.Column="1" Margin="2,2,0,2"/>
 
-		<TextBlock Text="MCC requires icons to be within the range of E000-E2FF." Foreground="{DynamicResource PrimaryTextBrush}" TextWrapping="Wrap" VerticalAlignment="Top" Grid.Row="2" Grid.ColumnSpan="2" />
+		<TextBlock Text="MCC requires icons to be within the range of E000-E2FF. Suggested unicodes may exceed this!" Foreground="{DynamicResource PrimaryTextBrush}" TextWrapping="Wrap" VerticalAlignment="Top" Grid.Row="2" Grid.ColumnSpan="2" />
 
 		<StackPanel Orientation="Horizontal" Grid.Row="4" Grid.ColumnSpan="2" HorizontalAlignment="Right">
-			<Button x:Name="btnImport" Content="Import" Padding="8,0" Click="Import_Click"/>
+			<Button x:Name="btnSuggest" Content="Suggest" Padding="8,0" Click="Suggest_Click" ToolTip="Will attempt to find the next unused character in the font for you."/>
+			<Button x:Name="btnImport" Content="Import" Margin="4,0,0,0" Padding="8,0" Click="Import_Click"/>
 			<Button Content="Cancel" Margin="4,0,0,0" Padding="8,0" Click="Cancel_Click"/>
 		</StackPanel>
 	</Grid>

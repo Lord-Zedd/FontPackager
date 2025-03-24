@@ -17,7 +17,8 @@ namespace FontPackager.Classes
 	{
 		None,
 		Cool,
-		Warm
+		Warm,
+		Custom
 	}
 
 	public static class ReaderExtensions
@@ -82,6 +83,27 @@ namespace FontPackager.Classes
 		{
 			Message = msg;
 			IsCritical = crit;
+		}
+	}
+
+	public class TintInfo
+	{
+		public static TintInfo None { get; } = new TintInfo(CharTint.None);
+		public static TintInfo Cool { get; } = new TintInfo(CharTint.Cool);
+		public static TintInfo Warm { get; } = new TintInfo(CharTint.Warm);
+
+		public CharTint TintType { get; set; }
+		public System.Drawing.Color CustomColor { get; set; }
+
+		public TintInfo(CharTint tint)
+		{
+			TintType = tint;
+			CustomColor = System.Drawing.Color.White;
+		}
+		public TintInfo(CharTint tint, System.Drawing.Color custom)
+		{
+			TintType = tint;
+			CustomColor = custom;
 		}
 	}
 

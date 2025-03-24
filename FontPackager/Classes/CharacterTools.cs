@@ -122,7 +122,7 @@ namespace FontPackager.Classes
 		/// <param name="bc">Character with the data to compress.</param>
 		/// <param name="tint">The tint to apply to the compressed pixels. Default is no tint.</param>
 		/// <returns>Whether the compression could complete.</returns>
-		public static bool CompressData(BlamCharacter bc, CharTint tint = CharTint.None)
+		public static bool CompressData(BlamCharacter bc, TintInfo tint = null)
 		{
 			if (bc.DecompressedData == null || bc.DecompressedData.Length < 4)
 				return false;
@@ -136,17 +136,20 @@ namespace FontPackager.Classes
 
 				ushort result = (ushort)((AR << 8) | GB);
 
-				switch (tint)
+				if (tint != null)
 				{
-					case CharTint.Cool:
-						if ((result & 0xFFF) == 0x000) result += 1;
-						else if (((result & 0xFFF) % 0x111) == 0) result -= 0x100;
-						break;
+					switch (tint.TintType)
+					{
+						case CharTint.Cool:
+							if ((result & 0xFFF) == 0x000) result += 1;
+							else if (((result & 0xFFF) % 0x111) == 0) result -= 0x100;
+							break;
 
-					case CharTint.Warm:
-						if ((result & 0xFFF) == 0x000) result += 0x100;
-						else if (((result & 0xFFF) % 0x111) == 0) result -= 1;
-						break;
+						case CharTint.Warm:
+							if ((result & 0xFFF) == 0x000) result += 0x100;
+							else if (((result & 0xFFF) % 0x111) == 0) result -= 1;
+							break;
+					}
 				}
 
 				shrunkpixels[i] = result;
@@ -317,7 +320,7 @@ namespace FontPackager.Classes
 		/// <param name="tint">The tint to apply to the character. Default is no tint.</param>
 		/// <param name="crop">Trims empty space of either side of the given image. Default is true.</param>
 		/// <returns>A BlamCharacter</returns>
-		public static BlamCharacter CreateCharacter(ushort unicindex, Image image, CharTint tint, bool crop)
+		public static BlamCharacter CreateCharacter(ushort unicindex, Image image, TintInfo tint, bool crop)
 		{
 			return CreateCharacter(unicindex, image, tint, crop, out Rectangle bounds);
 		}
@@ -329,7 +332,7 @@ namespace FontPackager.Classes
 		/// <param name="image">The image to convert.</param>
 		/// <param name="tint">The tint to apply to the character. Default is no tint.</param>
 		/// <param name="crop">Trims empty space of either side of the given image. Default is true.</param>
-		public static BlamCharacter CreateCharacter(ushort unicindex, Image image, CharTint tint, bool crop, out Rectangle bounds)
+		public static BlamCharacter CreateCharacter(ushort unicindex, Image image, TintInfo tint, bool crop, out Rectangle bounds)
 		{
 			bounds = new Rectangle(0, 0, image.Width, image.Height);
 			if (image.Width > ushort.MaxValue || image.Height > ushort.MaxValue || image.PixelFormat != PixelFormat.Format32bppArgb)
@@ -377,11 +380,43 @@ namespace FontPackager.Classes
 
 			workingimage.Dispose();
 
-			bc.DecompressedData = data;
+			if (tint != null && tint.TintType == CharTint.Custom)
+				bc.DecompressedData = TintFullPixels(data, tint.CustomColor);
+			else
+				bc.DecompressedData = data;
+
 			CompressData(bc, tint);
 			DecompressData(bc);
 			
 			return bc;
+		}
+
+		public static byte[] TintFullPixels(byte[] decompressedPixels, Color color)
+		{
+			byte[] tinted = new byte[decompressedPixels.Length];
+			for (int p = 0; p < decompressedPixels.Length; p += 4)
+			{
+				byte pb = decompressedPixels[p];
+				byte pg = decompressedPixels[p + 1];
+				byte pr = decompressedPixels[p + 2];
+
+				if (pb == pg && pg == pr)
+				{
+					tinted[p] = color.B;
+					tinted[p + 1] = color.G;
+					tinted[p + 2] = color.R;
+					tinted[p + 3] = decompressedPixels[p + 3];
+				}
+				else
+				{
+					tinted[p] = decompressedPixels[p];
+					tinted[p + 1] = decompressedPixels[p + 1];
+					tinted[p + 2] = decompressedPixels[p + 2];
+					tinted[p + 3] = decompressedPixels[p + 3];
+				}
+			}
+
+			return tinted;
 		}
 	}
 }

@@ -173,15 +173,24 @@ namespace FontPackager
 			Title = "Font Packager - " + Font.Name;
 		}
 
-		private CharTint GetTintSetting()
+		private TintInfo GetTintSetting()
 		{
-
 			if (menuTCool.IsChecked)
-				return CharTint.Cool;
+				return TintInfo.Cool;
 			else if (menuTWarm.IsChecked)
-				return CharTint.Warm;
+				return TintInfo.Warm;
+			else if (menuTCustom.IsChecked)
+			{
+				string colorString = customTintInput.Text;
+				if (colorString.StartsWith("#"))
+					colorString = colorString.Substring(1);
+
+				if (!int.TryParse(colorString, NumberStyles.HexNumber, null, out int colorInt))
+					return TintInfo.None;
+				return new TintInfo(CharTint.Custom, System.Drawing.Color.FromArgb((int)(colorInt | 0xFF000000)));
+			}
 			else
-				return CharTint.None;
+				return TintInfo.None;
 		}
 		
 		private void Save_Click(object sender, RoutedEventArgs e)
@@ -598,7 +607,7 @@ namespace FontPackager
 
 		private void AddChar_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			UnicodeInput uinput = new UnicodeInput(Font.Name);
+			UnicodeInput uinput = new UnicodeInput(Font);
 			uinput.ShowDialog();
 
 			if (uinput.DialogResult.Value == false)
@@ -905,7 +914,17 @@ namespace FontPackager
 
 		#endregion
 
+		private void PresetSpartan_Click(object sender, RoutedEventArgs e)
+		{
+			customTintInput.Text = "75BAFF";
+			custom.IsChecked = true;
+		}
 
+		private void PresetElite_Click(object sender, RoutedEventArgs e)
+		{
+			customTintInput.Text = "CE8FDE";
+			custom.IsChecked = true;
+		}
 	}
 
 	public class CharacterRange : INotifyPropertyChanged

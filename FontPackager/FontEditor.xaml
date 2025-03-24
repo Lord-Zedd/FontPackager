@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FontPackager"
+		xmlns:cl="clr-namespace:FontPackager.Classes"
         mc:Ignorable="d" x:Name="window" Icon=".\Resources\icon.ico" Closing="window_Closing"
         Title="Font Packager - Comic Sans" Background="{DynamicResource MainWindowBackgroundBrush}" Height="600" Width="720" MinHeight="400" MinWidth="500" UseLayoutRounding="True">
 	<Window.Resources>
@@ -72,17 +73,29 @@
 						</MenuItem>
 
 					</MenuItem>
-					<MenuItem Header="Character Tint" ToolTip="When some games render a character, grayscale colors may get overwritten by the text color. This option will tint affected colors so they display as intended.">
-						<MenuItem x:Name="menuTNone" IsCheckable="True" Header="None" IsChecked="{Binding ElementName=none, Path=IsChecked}">
+					<MenuItem Header="Character Tint" ToolTip="Applies custom tinting on future imported characters; to prevent the game from or to mimic applying color.">
+						<MenuItem x:Name="menuTNone" IsCheckable="True" Header="None" IsChecked="{Binding ElementName=none, Path=IsChecked}" ToolTip="No tinting applied.">
 							<RadioButton x:Name="none" Visibility="Collapsed" GroupName="Tint" IsChecked="True"/>
 						</MenuItem>
-						<MenuItem x:Name="menuTCool" IsCheckable="True" Header="Cool" IsChecked="{Binding ElementName=cool, Path=IsChecked}">
-							<RadioButton x:Name="cool" Visibility="Collapsed" GroupName="Tint"/>
+						<MenuItem x:Name="menuTCool" IsCheckable="True" Header="Cool" IsChecked="{Binding ElementName=cool, Path=IsChecked}" ToolTip="All greyscale pixels will turn a cooler color so no extra color is applied ingame.">
+							<RadioButton x:Name="cool" Visibility="Collapsed" GroupName="Tint" />
 						</MenuItem>
-						<MenuItem x:Name="menuTWarm" IsCheckable="True" Header="Warm" IsChecked="{Binding ElementName=warm, Path=IsChecked}">
-							<RadioButton x:Name="warm" Visibility="Collapsed" GroupName="Tint"/>
+						<MenuItem x:Name="menuTWarm" IsCheckable="True" Header="Warm" IsChecked="{Binding ElementName=warm, Path=IsChecked}" ToolTip="All greyscale pixels will turn a warmer color so no extra color is applied ingame.">
+							<RadioButton x:Name="warm" Visibility="Collapsed" GroupName="Tint" />
 						</MenuItem>
-
+						<MenuItem x:Name="menuTCustom" IsCheckable="True" Header="Custom Color:" IsChecked="{Binding ElementName=custom, Path=IsChecked}" ToolTip="All greyscale pixels will be tinted the below color like the game does.">
+							<RadioButton x:Name="custom" Visibility="Collapsed" GroupName="Tint" />
+						</MenuItem>
+						<MenuItem>
+							<MenuItem.Header>
+								<StackPanel Orientation="Horizontal" Margin="8,0,0,0">
+									<TextBlock Text="#" Margin="4,0,0,0"/>
+									<TextBox x:Name="customTintInput" Text="FFFFFF" Width="100" ToolTip="Hexidecimal RRGGBB" />
+								</StackPanel>
+							</MenuItem.Header>
+						</MenuItem>
+						<MenuItem Header="Custom Preset: H2 Spartan" Click="PresetSpartan_Click" />
+						<MenuItem Header="Custom Preset: H2 Elite" Click="PresetElite_Click" />
 					</MenuItem>
 					<MenuItem x:Name="menuCrop" Header="Crop Sides" IsCheckable="True" ToolTip="Custom characters will have empty space on either side cropped, with that space converted to X Origin/Display Width values."/>
 

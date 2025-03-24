@@ -66,14 +66,9 @@ namespace FontPackager
 				if (foreString.StartsWith("#"))
 					foreString = foreString.Substring(1);
 
-				if (!byte.TryParse(foreString.Substring(0, 2), System.Globalization.NumberStyles.HexNumber, null, out byte foreRed))
+				if (!int.TryParse(foreString, System.Globalization.NumberStyles.HexNumber, null, out int foreInt))
 					return;
-				if (!byte.TryParse(foreString.Substring(2, 2), System.Globalization.NumberStyles.HexNumber, null, out byte foreGreen))
-					return;
-				if (!byte.TryParse(foreString.Substring(4, 2), System.Globalization.NumberStyles.HexNumber, null, out byte foreBlue))
-					return;
-
-				foreground = Color.FromArgb(0xFF, foreRed, foreGreen, foreBlue);
+				foreground = Color.FromArgb((int)(foreInt | 0xFF000000));
 			}
 
 			if ((bool)chkBackCol.IsChecked && txtBackCol.Text.Length >= 6)
@@ -82,14 +77,9 @@ namespace FontPackager
 				if (backString.StartsWith("#"))
 					backString = backString.Substring(1);
 
-				if (!byte.TryParse(backString.Substring(0, 2), System.Globalization.NumberStyles.HexNumber, null, out byte backRed))
+				if (!int.TryParse(backString, System.Globalization.NumberStyles.HexNumber, null, out int backInt))
 					return;
-				if (!byte.TryParse(backString.Substring(2, 2), System.Globalization.NumberStyles.HexNumber, null, out byte backGreen))
-					return;
-				if (!byte.TryParse(backString.Substring(4, 2), System.Globalization.NumberStyles.HexNumber, null, out byte backBlue))
-					return;
-
-				background = Color.FromArgb(0xFF, backRed, backGreen, backBlue);
+				background = Color.FromArgb((int)(backInt | 0xFF000000));
 			}
 
 			bool kern = (bool)chkKern.IsChecked;
@@ -157,23 +147,11 @@ namespace FontPackager
 
 							if (foreground != Color.Transparent)
 							{
-								//we shall tint the pixels like the game, even though it is rather destructive
 								BlamCharacter tint = orig.Clone();
 
 								tint.CompressedData = null;
-								for (int p = 0; p < tint.DecompressedData.Length; p += 4)
-								{
-									byte pb = tint.DecompressedData[p];
-									byte pg = tint.DecompressedData[p + 1];
-									byte pr = tint.DecompressedData[p + 2];
+								tint.DecompressedData = CharacterTools.TintFullPixels(orig.DecompressedData, foreground);
 
-									if (pb == pg && pg == pr)
-									{
-										tint.DecompressedData[p] = foreground.B;
-										tint.DecompressedData[p + 1] = foreground.G;
-										tint.DecompressedData[p + 2] = foreground.R;
-									}
-								}
 								charCache[runtime] = tint;
 							}
 							else

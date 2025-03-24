@@ -212,7 +212,7 @@ namespace FontPackager
 					if (dd == null || dd.Width <= 1)
 						return null;
 
-					bc = CharacterTools.CreateCharacter(unic, dd, CharTint.None, true, out actualrect);
+					bc = CharacterTools.CreateCharacter(unic, dd, TintInfo.None, true, out actualrect);
 				}
 				if (bc == null)
 					return null;
