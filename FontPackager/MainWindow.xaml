@@ -58,7 +58,7 @@
 					<MenuItem Header="By Zeddikins..." Foreground="{StaticResource URLTextBrush}" Click="TaggedLink_Click"
 							  Tag="https://www.youtube.com/watch?v=dQw4w9WgXcQ" ToolTip="Opens a browser window to something cool!" />
 					<MenuItem Header="Font Packager on Github..." Foreground="{StaticResource URLTextBrush}" Click="TaggedLink_Click"
-							  Tag="https://github.com/Lord-Zedd/FontPackager" ToolTip="Opens a browser window to Font Packager's repositor on Github." />
+							  Tag="https://github.com/Lord-Zedd/FontPackager" ToolTip="Opens a browser window to Font Packager's repository on Github." />
 				</MenuItem>
 				
 

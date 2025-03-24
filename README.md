@@ -19,7 +19,7 @@ Font Packager is a tool to open and manipulate the font-related files of blam en
 (This list includes known beta/prerelease versions.)
 - Halo CE (Xbox Cache Files, PC Tags)
 - Halo 2
-- Halo 2 Vista)
+- Halo 2 Vista
 - Halo 2 MCC (PC)
 - Halo 2 Anniversary MCC (PC)
 - Halo 3
